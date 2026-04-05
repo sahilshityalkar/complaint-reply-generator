@@ -34,6 +34,12 @@ export default function Navbar() {
             >
               Tool
             </Link>
+            <Link
+              href="/dashboard"
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Dashboard
+            </Link>
             <UserButton />
           </Show>
         </div>

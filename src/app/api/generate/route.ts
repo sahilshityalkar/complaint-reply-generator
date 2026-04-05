@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, MODEL } from "@/lib/groq";
 import { getUser, createUser, checkLimit, incrementUsage } from "@/lib/usage";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   const { userId, sessionClaims } = await auth();
@@ -85,6 +86,15 @@ Rules for every reply:
     const { replies } = JSON.parse(raw);
 
     await incrementUsage(userId);
+
+    // Save to reply history (fire and forget — don't block the response)
+    supabase.from("reply_history").insert({
+      user_id: userId,
+      complaint,
+      tone,
+      business_type: bizType,
+      replies,
+    }).then(() => null);
 
     return NextResponse.json({ replies });
   } catch {
