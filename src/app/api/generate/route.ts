@@ -1,13 +1,38 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { groq, MODEL } from "@/lib/groq";
+import { getUser, checkLimit, incrementUsage } from "@/lib/usage";
 
 export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { complaint, tone, bizType } = await req.json();
 
   if (!complaint || complaint.trim().length < 20) {
     return NextResponse.json(
       { error: "Complaint must be at least 20 characters." },
       { status: 400 }
+    );
+  }
+
+  // Check user exists in DB
+  const user = await getUser(userId);
+  if (!user) {
+    return NextResponse.json(
+      { error: "User not found. Please sign out and sign back in." },
+      { status: 404 }
+    );
+  }
+
+  // Check usage limit
+  const underLimit = await checkLimit(userId);
+  if (!underLimit) {
+    return NextResponse.json(
+      { error: "limit_reached" },
+      { status: 403 }
     );
   }
 
@@ -59,6 +84,9 @@ Rules for every reply:
 
     const raw = completion.choices[0].message.content ?? "";
     const { replies } = JSON.parse(raw);
+
+    await incrementUsage(userId);
+
     return NextResponse.json({ replies });
   } catch {
     return NextResponse.json(
