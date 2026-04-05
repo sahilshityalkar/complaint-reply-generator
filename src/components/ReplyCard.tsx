@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import toast from "react-hot-toast";
 
 interface Reply {
   label: string;
@@ -9,12 +9,9 @@ interface Reply {
 }
 
 export default function ReplyCard({ reply }: { reply: Reply }) {
-  const [copied, setCopied] = useState(false);
-
   async function handleCopy() {
     await navigator.clipboard.writeText(reply.text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    toast.success("Reply copied!");
   }
 
   return (
@@ -25,7 +22,7 @@ export default function ReplyCard({ reply }: { reply: Reply }) {
           onClick={handleCopy}
           className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
         >
-          {copied ? "Copied!" : "Copy"}
+          Copy
         </button>
       </div>
       <p className="text-gray-800 text-sm leading-relaxed">{reply.text}</p>
