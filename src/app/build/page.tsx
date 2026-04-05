@@ -4,412 +4,554 @@ const STACK = [
   {
     name: "Next.js 15",
     category: "Framework",
-    why: "One codebase for frontend, backend API routes, and server components. No separate Express server. The App Router handles auth-protected pages server-side.",
-    color: "bg-black text-white",
+    icon: "N",
+    iconBg: "bg-black",
+    why: "Single codebase for frontend, backend API routes, and server components. App Router handles auth-protected pages server-side with zero extra middleware.",
   },
   {
     name: "Groq API",
-    category: "AI",
-    why: "Free tier for development + extremely fast inference via LPU hardware. Using llama-3.3-70b-versatile — best open model for nuanced, empathetic customer service writing.",
-    color: "bg-orange-500 text-white",
+    category: "AI / LLM",
+    icon: "G",
+    iconBg: "bg-orange-500",
+    why: "Free tier + LPU hardware makes inference blazing fast. llama-3.3-70b-versatile produces reply quality on par with GPT-4o for empathetic writing tasks.",
   },
   {
     name: "Clerk",
-    category: "Auth",
-    why: "Full auth system (email + Google) in under 30 minutes. Handles sessions, webhooks, and user management. Free up to 10k MAU. Webhook fires on signup to sync users to our DB.",
-    color: "bg-purple-600 text-white",
+    category: "Authentication",
+    icon: "C",
+    iconBg: "bg-violet-600",
+    why: "Complete auth system with email + Google in under 30 minutes. Webhook fires on user.created to auto-sync users into our own database.",
   },
   {
     name: "Supabase",
     category: "Database",
-    why: "PostgreSQL with Row Level Security, a REST API, and a free tier. Relational data fits our schema perfectly — users have a plan, usage has a count. RLS ensures users never see each other's data.",
-    color: "bg-green-600 text-white",
+    icon: "S",
+    iconBg: "bg-emerald-600",
+    why: "PostgreSQL with Row Level Security baked in. RLS policies ensure users never read each other's data — enforced at the database level, not application level.",
   },
   {
     name: "Tailwind CSS",
     category: "Styling",
-    why: "Styles inline in JSX. No CSS files, no class naming, no context switching. Faster to build and easier to maintain solo.",
-    color: "bg-cyan-500 text-white",
+    icon: "T",
+    iconBg: "bg-cyan-500",
+    why: "Utility-first CSS means zero context switching between files. Styles live where the markup lives. Consistent design tokens out of the box.",
   },
   {
     name: "Vercel",
-    category: "Hosting",
-    why: "One-click deploy from GitHub. Auto-deploys on every push. Free hobby tier. Zero DevOps — no server to manage.",
-    color: "bg-gray-900 text-white",
+    category: "Deployment",
+    icon: "V",
+    iconBg: "bg-zinc-800",
+    why: "Push to main → auto-deploy. Preview URLs for every branch. Zero DevOps, zero server management. HTTPS and CDN included for free.",
   },
 ];
 
 const PHASES = [
   {
-    phase: "Phase 0",
-    title: "Project Setup",
-    duration: "Day 1",
+    num: "00",
+    title: "Project Scaffold",
+    tag: "Infrastructure",
+    tagColor: "bg-zinc-100 text-zinc-600",
     steps: [
-      "Scaffolded Next.js 15 with TypeScript + Tailwind using create-next-app",
-      "Installed all dependencies: groq-sdk, @clerk/nextjs, @supabase/supabase-js, svix, react-hot-toast, clsx",
-      "Set up .env.local with all API keys — never committed to git",
-      "Connected GitHub repo to Vercel for automatic deployments",
+      "Bootstrapped Next.js 15 with TypeScript, Tailwind, App Router via create-next-app",
+      "Installed groq-sdk, @clerk/nextjs, @supabase/supabase-js, svix, react-hot-toast",
+      "Configured .env.local with secrets — enforced in .gitignore before first commit",
+      "Connected repo to Vercel — blank deploy live within minutes",
     ],
-    color: "border-gray-300",
   },
   {
-    phase: "Phase 1",
-    title: "Core AI Tool",
-    duration: "Day 2",
+    num: "01",
+    title: "Core AI Feature",
+    tag: "Product",
+    tagColor: "bg-orange-50 text-orange-600",
     steps: [
-      "Built lib/groq.ts — Groq client exporting llama-3.3-70b-versatile model",
-      "Built POST /api/generate — calls Groq with structured prompt, returns 3 reply variations as JSON",
-      "Built ReplyGenerator component — textarea, tone selector (4 options), business type selector (6 options)",
-      "Built ReplyCard component — displays reply with one-click copy",
-      "Verified end-to-end: paste complaint → generate → 3 replies appear",
+      "lib/groq.ts — initialises Groq client, exports model constant",
+      "POST /api/generate — structured prompt engineering, returns 3 reply variants as typed JSON",
+      "ReplyGenerator component — textarea, 4 tone options, 6 business types, loading states",
+      "ReplyCard component — reply display with clipboard copy",
     ],
-    color: "border-orange-300",
   },
   {
-    phase: "Phase 2",
-    title: "Database + Usage Tracking",
-    duration: "Day 3",
+    num: "02",
+    title: "Database & Usage Limits",
+    tag: "Backend",
+    tagColor: "bg-emerald-50 text-emerald-700",
     steps: [
-      "Created Supabase project, ran SQL to create users and usage tables",
-      "Enabled Row Level Security on all tables so users never read each other's data",
-      "Built lib/supabase.ts — server-side client with service role key (bypasses RLS for admin ops)",
-      "Built lib/usage.ts — getUser, createUser, getUsage, incrementUsage, checkLimit helpers",
-      "Built lib/plans.ts — plan limits config (free=10, starter=100, pro=-1 for unlimited)",
-      "Created increment_usage PostgreSQL function for atomic, race-condition-safe counter",
-      "Updated /api/generate to check plan limits before calling Groq, increment after success",
+      "Supabase project created, users and usage tables with foreign keys and RLS enabled",
+      "increment_usage() Postgres function — atomic INSERT … ON CONFLICT to prevent race conditions",
+      "lib/usage.ts — getUser, createUser, getUsage, incrementUsage, checkLimit helpers",
+      "lib/plans.ts — free=10, starter=100, pro=−1 (unlimited) config",
+      "/api/generate updated to gate on plan limit before calling LLM",
     ],
-    color: "border-green-300",
   },
   {
-    phase: "Phase 3",
-    title: "Auth with Clerk",
-    duration: "Day 4",
+    num: "03",
+    title: "Authentication",
+    tag: "Auth",
+    tagColor: "bg-violet-50 text-violet-700",
     steps: [
-      "Wrapped root layout with ClerkProvider, configured sign-in/sign-up redirect URLs",
-      "Built middleware.ts using clerkMiddleware() — protects /app and /dashboard routes",
-      "Built split-screen sign-in/sign-up pages — black branding panel left, Clerk form right",
-      "Built Navbar with Show when='signed-in'/'signed-out' — Sign in, Get started, Tool, Dashboard links",
-      "Set up Clerk webhook endpoint — verifies svix signature, handles user.created/updated/deleted",
-      "user.created → insert row in Supabase users table",
-      "user.updated → sync email change to Supabase",
-      "user.deleted → delete user row (cascades to usage and reply_history)",
+      "ClerkProvider in root layout, signInUrl and signUpUrl configured",
+      "middleware.ts — clerkMiddleware() protecting /app and /dashboard routes",
+      "Split-screen auth pages — brand panel left, embedded Clerk form right",
+      "Navbar — Show when='signed-in'/'signed-out' for conditional UI",
+      "Clerk webhook at /api/webhooks/clerk — svix signature verification, handles user.created / updated / deleted",
     ],
-    color: "border-purple-300",
   },
   {
-    phase: "Phase 4",
+    num: "04",
     title: "Landing Page",
-    duration: "Day 5",
+    tag: "Marketing",
+    tagColor: "bg-blue-50 text-blue-700",
     steps: [
-      "Hero section — headline, subheading, two CTAs",
-      "Demo section — 2 hardcoded complaint/reply examples showing the product",
-      "Features section — 4 feature cards",
-      "Pricing section — Free/Starter/Pro cards (paid plans show Coming soon)",
-      "CTA section — black bottom banner with sign up button",
-      "Footer with copyright",
+      "Hero — value proposition headline, two CTAs",
+      "Demo section — 2 hardcoded complaint/reply pairs showing the product in action",
+      "Features grid — 4 cards",
+      "Pricing section — Free / Starter / Pro, paid tiers show Coming Soon",
+      "Black CTA section + footer",
     ],
-    color: "border-blue-300",
   },
   {
-    phase: "Phase 5",
-    title: "Polish",
-    duration: "Day 6",
+    num: "05",
+    title: "UX Polish",
+    tag: "Frontend",
+    tagColor: "bg-yellow-50 text-yellow-700",
     steps: [
-      "Built UsageBadge component — shows X/10 replies used with progress bar, turns yellow at 70%, red at limit",
-      "Built UpgradeModal — appears when free limit hit, shows plan options and waitlist CTA",
-      "Added react-hot-toast notifications — Generating... → 3 replies ready! → Reply copied!",
-      "Added character counter on textarea with live validation (needs 20+ chars)",
-      "Built GET /api/usage endpoint — returns count, limit, plan for the badge",
+      "UsageBadge — live X/10 counter with progress bar, yellow at 70%, red at limit",
+      "UpgradeModal — triggered on 403 limit_reached, shows plan comparison",
+      "react-hot-toast — Generating… → 3 replies ready! → Reply copied! feedback loop",
+      "GET /api/usage endpoint powering the badge",
+      "Character counter with inline validation below textarea",
     ],
-    color: "border-yellow-300",
   },
   {
-    phase: "Phase 6",
+    num: "06",
     title: "Reply History",
-    duration: "Day 7",
+    tag: "Feature",
+    tagColor: "bg-rose-50 text-rose-700",
     steps: [
-      "Created reply_history table in Supabase with jsonb column for replies array",
-      "Updated /api/generate to save every generation to reply_history (fire-and-forget, doesn't block response)",
-      "Built /dashboard page — server component fetching usage + last 20 generations in parallel",
-      "Dashboard shows usage stats with progress bar, full reply history with complaint preview, tone, business type, and all 3 replies",
+      "reply_history table — jsonb column for replies array (read together, never queried individually)",
+      "/api/generate saves to reply_history after response — fire-and-forget, zero latency impact",
+      "/dashboard — React Server Component, parallel data fetching for usage + last 20 generations",
+      "History cards show complaint preview, tone, business type, and all 3 replies",
     ],
-    color: "border-red-300",
   },
 ];
 
 const SCHEMA = [
   {
     table: "users",
+    desc: "Synced from Clerk via webhook on signup",
     columns: [
-      { name: "id", type: "text PK", note: "Clerk user ID" },
-      { name: "email", type: "text", note: "unique" },
-      { name: "plan", type: "text", note: "'free' | 'starter' | 'pro'" },
-      { name: "created_at", type: "timestamptz", note: "default now()" },
-      { name: "stripe_customer_id", type: "text", note: "null until payment" },
+      { name: "id", type: "text", constraint: "PRIMARY KEY", note: "Clerk user ID (user_xxx)" },
+      { name: "email", type: "text", constraint: "UNIQUE NOT NULL", note: "" },
+      { name: "plan", type: "text", constraint: "DEFAULT 'free'", note: "'free' | 'starter' | 'pro'" },
+      { name: "created_at", type: "timestamptz", constraint: "DEFAULT now()", note: "" },
+      { name: "stripe_customer_id", type: "text", constraint: "UNIQUE", note: "null until first payment" },
     ],
   },
   {
     table: "usage",
+    desc: "One row per user per calendar month",
     columns: [
-      { name: "id", type: "uuid PK", note: "auto generated" },
-      { name: "user_id", type: "text FK", note: "→ users.id" },
-      { name: "month", type: "text", note: "'2026-04' format" },
-      { name: "reply_count", type: "integer", note: "default 0" },
+      { name: "id", type: "uuid", constraint: "PRIMARY KEY", note: "gen_random_uuid()" },
+      { name: "user_id", type: "text", constraint: "REFERENCES users(id)", note: "ON DELETE CASCADE" },
+      { name: "month", type: "text", constraint: "NOT NULL", note: "'2026-04' — no resets needed" },
+      { name: "reply_count", type: "integer", constraint: "DEFAULT 0", note: "incremented atomically" },
     ],
   },
   {
     table: "reply_history",
+    desc: "Full log of every generation",
     columns: [
-      { name: "id", type: "uuid PK", note: "auto generated" },
-      { name: "user_id", type: "text FK", note: "→ users.id" },
-      { name: "complaint", type: "text", note: "original complaint" },
-      { name: "tone", type: "text", note: "selected tone" },
-      { name: "business_type", type: "text", note: "selected biz type" },
-      { name: "replies", type: "jsonb", note: "array of 3 reply objects" },
-      { name: "created_at", type: "timestamptz", note: "default now()" },
+      { name: "id", type: "uuid", constraint: "PRIMARY KEY", note: "gen_random_uuid()" },
+      { name: "user_id", type: "text", constraint: "REFERENCES users(id)", note: "ON DELETE CASCADE" },
+      { name: "complaint", type: "text", constraint: "NOT NULL", note: "" },
+      { name: "tone", type: "text", constraint: "NOT NULL", note: "" },
+      { name: "business_type", type: "text", constraint: "NOT NULL", note: "" },
+      { name: "replies", type: "jsonb", constraint: "NOT NULL", note: "array of 3 reply objects" },
+      { name: "created_at", type: "timestamptz", constraint: "DEFAULT now()", note: "indexed DESC" },
     ],
   },
 ];
 
 const DECISIONS = [
   {
-    decision: "Groq over OpenAI/Anthropic",
-    reason: "Free tier removes all cost friction during development and testing. The llama-3.3-70b model produces reply quality comparable to GPT-4o for this specific use case. Swapping to another provider is a 5-line change.",
+    num: "01",
+    title: "Groq over OpenAI / Anthropic",
+    tag: "Cost",
+    body: "Free tier removes all friction during development. llama-3.3-70b-versatile produces empathetic writing on par with GPT-4o for this use case. Switching providers is a 5-line change.",
   },
   {
-    decision: "Payments deferred",
-    reason: "Stripe requires KYC/business registration for Indian accounts. Decision: ship the product first, validate with real users, then add Razorpay or Lemon Squeezy when people actually ask how to pay.",
+    num: "02",
+    title: "Atomic Postgres function for usage increment",
+    tag: "Concurrency",
+    body: "Two simultaneous requests could both read count=5 and both write 6 instead of 7. INSERT … ON CONFLICT DO UPDATE inside a Postgres function is atomic — no application-level locks needed.",
   },
   {
-    decision: "jsonb for replies column",
-    reason: "The 3 replies are always read together, never individually queried. Storing them as one JSON blob is simpler and faster than a separate replies table with foreign keys.",
+    num: "03",
+    title: "jsonb column for replies",
+    tag: "Schema",
+    body: "The 3 replies are always read together, never queried individually. One jsonb blob is simpler and faster than a joined replies table. No JOIN, no N+1 problem.",
   },
   {
-    decision: "increment_usage as a Postgres function",
-    reason: "If two requests hit simultaneously, both could read reply_count=5 and both write 6 instead of 7. The Postgres function uses INSERT ... ON CONFLICT DO UPDATE which is atomic and race-condition safe.",
+    num: "04",
+    title: "Service role key only on the server",
+    tag: "Security",
+    body: "The service role key bypasses Row Level Security. It lives exclusively in server-side API routes and webhook handlers — never in client components or the browser.",
   },
   {
-    decision: "Service role key only server-side",
-    reason: "The service role key bypasses RLS. It only lives in server-side API routes and webhooks — never in client components. Client uses the anon key which respects RLS policies.",
+    num: "05",
+    title: "Fire-and-forget for reply history",
+    tag: "Performance",
+    body: "History is a nice-to-have. The user gets their 3 replies immediately. Saving to reply_history runs in the background — if the insert fails, the user experience is unaffected.",
   },
   {
-    decision: "Fire-and-forget for reply history",
-    reason: "Saving to reply_history should not slow down the response. The user gets their replies immediately. If the DB insert fails, they still got their replies — history is a nice-to-have, not blocking.",
+    num: "06",
+    title: "Payments deferred to post-launch",
+    tag: "Strategy",
+    body: "Stripe requires KYC for Indian accounts. Ship the product first, validate with real users, then integrate Razorpay or Lemon Squeezy once people ask how to pay.",
   },
+];
+
+const CODE_FLOW = [
+  { comment: "1. Authenticate", code: "const { userId } = await auth()", highlight: false },
+  { comment: "", code: "if (!userId) return 401", highlight: false },
+  { comment: "2. Auto-provision user", code: "let user = await getUser(userId)", highlight: false },
+  { comment: "", code: "if (!user) await createUser(userId, email)", highlight: false },
+  { comment: "3. Enforce plan limit", code: "const allowed = await checkLimit(userId)", highlight: true },
+  { comment: "", code: "if (!allowed) return 403 'limit_reached'", highlight: false },
+  { comment: "4. Call LLM", code: "const { replies } = await groq.chat.completions.create(...)", highlight: false },
+  { comment: "5. Track usage (atomic)", code: "await incrementUsage(userId)", highlight: true },
+  { comment: "6. Persist history (non-blocking)", code: "supabase.from('reply_history').insert({...})", highlight: false },
+  { comment: "7. Respond", code: "return NextResponse.json({ replies })", highlight: false },
 ];
 
 export default function BuildPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <section className="bg-black text-white px-4 py-20">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">
-            Engineering Case Study
-          </p>
-          <h1 className="text-4xl font-bold leading-tight mb-4">
-            How I built ReplyAI
+    <div className="min-h-screen bg-white">
+
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden bg-zinc-950 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_#3b0764_0%,_transparent_60%)] opacity-40" />
+        <div className="relative max-w-4xl mx-auto px-6 py-24">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="h-px w-8 bg-zinc-600" />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+              Engineering Case Study
+            </span>
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
+            How I built<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">
+              ReplyAI
+            </span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl">
-            A micro-SaaS that turns customer complaints into 3 professional replies in under 5 seconds.
-            Built in 7 days using Next.js, Groq, Clerk, and Supabase.
+          <p className="text-zinc-400 text-lg max-w-xl leading-relaxed mb-10">
+            A full-stack micro-SaaS that converts customer complaints into
+            3 professional replies in under 5 seconds — with auth, usage tracking,
+            plan limits, and reply history.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {["Next.js 15", "TypeScript", "Groq AI", "Clerk Auth", "Supabase", "Vercel"].map((t) => (
-              <span key={t} className="text-xs px-3 py-1.5 rounded-full border border-white/20 text-gray-300">
+
+          <div className="flex flex-wrap gap-2 mb-10">
+            {["Next.js 15", "TypeScript", "Groq LLM", "Clerk", "Supabase", "Tailwind", "Vercel"].map((t) => (
+              <span
+                key={t}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 font-medium"
+              >
                 {t}
               </span>
             ))}
           </div>
-          <div className="mt-8 flex gap-4">
+
+          <div className="flex flex-wrap gap-3">
             <Link
               href="/app"
-              className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-zinc-100 transition-colors"
             >
-              Try the app
+              Live demo →
             </Link>
             <a
               href="https://github.com/sahilshityalkar/complaint-reply-generator"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 border border-white/20 text-white rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors"
             >
-              View on GitHub
+              GitHub repo
             </a>
           </div>
         </div>
       </section>
 
-      {/* Architecture overview */}
-      <section className="px-4 py-16 bg-white border-b border-gray-100">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">System Architecture</h2>
-          <div className="bg-gray-50 rounded-2xl border border-gray-100 p-6 font-mono text-sm">
-            <div className="flex flex-col gap-3 text-gray-700">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1.5 bg-black text-white rounded-lg text-xs">Browser</span>
-                <span className="text-gray-400">React UI — ReplyGenerator, UsageBadge, Dashboard</span>
-              </div>
-              <div className="pl-6 text-gray-400">↓ POST /api/generate  ↑ 3 replies JSON</div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1.5 bg-gray-700 text-white rounded-lg text-xs">Next.js API</span>
-                <span className="text-gray-400">Server-side — auth check → limit check → Groq → save history</span>
-              </div>
-              <div className="pl-6 flex gap-8 text-gray-400">
-                <span>↓ verify userId</span>
-                <span>↓ check plan limit</span>
-                <span>↓ call LLM</span>
-                <span>↓ save to DB</span>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap gap-y-2">
-                <span className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs">Clerk</span>
-                <span className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs">Supabase</span>
-                <span className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs">Groq</span>
-                <span className="text-gray-400 text-xs">← 3 external services, all free tier</span>
-              </div>
-              <div className="pl-6 text-gray-400">↑ Clerk webhook on user.created → auto-insert to users table</div>
+      {/* ── Stats bar ── */}
+      <div className="border-b border-zinc-100 bg-zinc-50">
+        <div className="max-w-4xl mx-auto px-6 py-5 grid grid-cols-2 sm:grid-cols-4 gap-6">
+          {[
+            { label: "Build time", value: "7 days" },
+            { label: "External services", value: "3 free tiers" },
+            { label: "API routes", value: "4 endpoints" },
+            { label: "DB tables", value: "3 with RLS" },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-2xl font-bold text-zinc-900">{s.value}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Architecture ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Architecture</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-8">How the system fits together</h2>
+        <div className="bg-zinc-950 rounded-2xl p-8 overflow-x-auto">
+          <div className="font-mono text-sm min-w-[480px] flex flex-col gap-4">
+            <Row>
+              <Pill color="bg-blue-500">Browser</Pill>
+              <span className="text-zinc-500 text-xs">React UI — ReplyGenerator · UsageBadge · Dashboard</span>
+            </Row>
+            <Arrow label="POST /api/generate" sub="{ complaint, tone, bizType }" />
+            <Row>
+              <Pill color="bg-zinc-700">Next.js API Route</Pill>
+              <span className="text-zinc-500 text-xs">auth → limit check → LLM → increment → save history</span>
+            </Row>
+            <div className="flex gap-3 pl-4 flex-wrap">
+              <ConnectorDown />
+              <ConnectorDown />
+              <ConnectorDown />
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <Pill color="bg-violet-600">Clerk</Pill>
+              <Pill color="bg-emerald-600">Supabase</Pill>
+              <Pill color="bg-orange-500">Groq LLM</Pill>
+              <span className="text-zinc-600 text-xs self-center">← all free tier</span>
+            </div>
+            <div className="text-zinc-600 text-xs pl-1 mt-1">
+              ↑ Clerk fires webhook on user.created → auto-inserts row into Supabase users table
             </div>
           </div>
         </div>
       </section>
 
-      {/* Tech stack */}
-      <section className="px-4 py-16 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">Tech Stack — Every Choice Explained</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {STACK.map((s) => (
-              <div key={s.name} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${s.color}`}>
-                    {s.name}
-                  </span>
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">{s.category}</span>
+      <Divider />
+
+      {/* ── Tech stack ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Stack</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-8">Every tool, every reason</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {STACK.map((s) => (
+            <div
+              key={s.name}
+              className="group rounded-xl border border-zinc-100 bg-white p-5 hover:border-zinc-200 hover:shadow-sm transition-all flex flex-col gap-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg ${s.iconBg} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                  {s.icon}
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{s.why}</p>
+                <div>
+                  <p className="font-semibold text-zinc-900 text-sm">{s.name}</p>
+                  <p className="text-xs text-zinc-400">{s.category}</p>
+                </div>
               </div>
-            ))}
-          </div>
+              <p className="text-sm text-zinc-600 leading-relaxed">{s.why}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Build phases timeline */}
-      <section className="px-4 py-16 bg-white">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">Build Timeline — Phase by Phase</h2>
-          <div className="flex flex-col gap-6">
-            {PHASES.map((p, i) => (
-              <div key={i} className={`border-l-4 ${p.color} pl-6 flex flex-col gap-3`}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{p.phase}</span>
-                  <span className="text-xs text-gray-300">·</span>
-                  <span className="text-xs text-gray-400">{p.duration}</span>
+      <Divider />
+
+      {/* ── Build timeline ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Build Log</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-12">Phase by phase</h2>
+        <div className="relative flex flex-col gap-0">
+          {/* vertical line */}
+          <div className="absolute left-[39px] top-0 bottom-0 w-px bg-zinc-100" />
+          {PHASES.map((p) => (
+            <div key={p.num} className="relative flex gap-6 pb-10 last:pb-0">
+              <div className="flex-shrink-0 w-20 flex flex-col items-center pt-1">
+                <div className="w-8 h-8 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center z-10">
+                  {p.num}
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg">{p.title}</h3>
-                <ul className="flex flex-col gap-1.5">
+              </div>
+              <div className="flex-1 pt-0.5">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-bold text-zinc-900">{p.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.tagColor}`}>
+                    {p.tag}
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-2">
                   {p.steps.map((step, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-gray-600">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+                    <li key={j} className="flex items-start gap-2.5 text-sm text-zinc-600">
+                      <svg className="w-3.5 h-3.5 mt-0.5 text-zinc-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
                       {step}
                     </li>
                   ))}
                 </ul>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Database schema */}
-      <section className="px-4 py-16 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">Database Schema</h2>
-          <div className="flex flex-col gap-4">
-            {SCHEMA.map((table) => (
-              <div key={table.table} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="px-5 py-3 bg-gray-900 flex items-center gap-2">
-                  <span className="text-xs text-gray-400">table</span>
-                  <span className="text-sm font-bold text-white font-mono">{table.table}</span>
+      <Divider />
+
+      {/* ── Database schema ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Data Model</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-8">PostgreSQL schema with RLS</h2>
+        <div className="flex flex-col gap-4">
+          {SCHEMA.map((table) => (
+            <div key={table.table} className="rounded-xl border border-zinc-100 overflow-hidden">
+              <div className="px-5 py-3 bg-zinc-950 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="font-mono text-sm font-bold text-white">{table.table}</span>
                 </div>
-                <div className="divide-y divide-gray-50">
-                  {table.columns.map((col) => (
-                    <div key={col.name} className="px-5 py-3 flex items-center gap-4">
-                      <span className="font-mono text-sm text-gray-900 w-40 flex-shrink-0">{col.name}</span>
-                      <span className="font-mono text-xs text-blue-600 w-32 flex-shrink-0">{col.type}</span>
-                      <span className="text-xs text-gray-400">{col.note}</span>
-                    </div>
-                  ))}
+                <span className="text-xs text-zinc-500">{table.desc}</span>
+              </div>
+              <div className="divide-y divide-zinc-50">
+                {table.columns.map((col) => (
+                  <div key={col.name} className="px-5 py-3 grid grid-cols-12 gap-2 items-center hover:bg-zinc-50 transition-colors">
+                    <span className="col-span-3 font-mono text-sm font-medium text-zinc-900">{col.name}</span>
+                    <span className="col-span-3 font-mono text-xs text-blue-600">{col.type}</span>
+                    <span className="col-span-3 text-xs text-zinc-400">{col.constraint}</span>
+                    <span className="col-span-3 text-xs text-zinc-400">{col.note}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Divider />
+
+      {/* ── Engineering decisions ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Decisions</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-8">Non-obvious engineering choices</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {DECISIONS.map((d) => (
+            <div key={d.num} className="rounded-xl border border-zinc-100 p-5 flex flex-col gap-3 hover:border-zinc-200 transition-colors">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <span className="text-xs font-mono text-zinc-400">{d.num}</span>
+                  <h3 className="font-semibold text-zinc-900 text-sm mt-0.5">{d.title}</h3>
                 </div>
+                <span className="text-xs px-2 py-1 rounded-full bg-zinc-100 text-zinc-600 font-medium flex-shrink-0">
+                  {d.tag}
+                </span>
+              </div>
+              <p className="text-sm text-zinc-600 leading-relaxed">{d.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Divider />
+
+      {/* ── API flow ── */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <SectionLabel>Core Logic</SectionLabel>
+        <h2 className="text-2xl font-bold text-zinc-900 mt-2 mb-8">
+          POST /api/generate — annotated flow
+        </h2>
+        <div className="bg-zinc-950 rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+            <div className="w-3 h-3 rounded-full bg-red-500/60" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
+            <div className="w-3 h-3 rounded-full bg-green-500/60" />
+            <span className="ml-3 text-xs text-zinc-500 font-mono">src/app/api/generate/route.ts</span>
+          </div>
+          <div className="p-6 font-mono text-sm flex flex-col gap-1.5 overflow-x-auto">
+            {CODE_FLOW.map((line, i) => (
+              <div key={i}>
+                {line.comment && (
+                  <p className="text-zinc-600 text-xs mb-0.5">// {line.comment}</p>
+                )}
+                <p className={`${line.highlight ? "text-emerald-400" : "text-zinc-300"}`}>
+                  {line.code}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Key decisions */}
-      <section className="px-4 py-16 bg-white">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">Key Engineering Decisions</h2>
-          <div className="flex flex-col gap-4">
-            {DECISIONS.map((d, i) => (
-              <div key={i} className="bg-gray-50 rounded-2xl border border-gray-100 p-5 flex flex-col gap-2">
-                <h3 className="font-semibold text-gray-900 text-sm">
-                  {i + 1}. {d.decision}
-                </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{d.reason}</p>
-              </div>
-            ))}
+      {/* ── CTA ── */}
+      <section className="bg-zinc-950 px-6 py-20">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Want to see it running?</h2>
+            <p className="text-zinc-400 text-sm mt-1">
+              Fully deployed on Vercel. Sign up free, no card required.
+            </p>
+          </div>
+          <div className="flex gap-3 flex-shrink-0">
+            <Link
+              href="/app"
+              className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-zinc-100 transition-colors whitespace-nowrap"
+            >
+              Try ReplyAI →
+            </Link>
+            <a
+              href="https://github.com/sahilshityalkar/complaint-reply-generator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors whitespace-nowrap"
+            >
+              GitHub
+            </a>
           </div>
         </div>
       </section>
 
-      {/* API flow */}
-      <section className="px-4 py-16 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">Core API Flow — /api/generate</h2>
-          <div className="bg-gray-900 rounded-2xl p-6 font-mono text-sm text-gray-300 flex flex-col gap-2 overflow-x-auto">
-            <p><span className="text-purple-400">POST</span> <span className="text-white">/api/generate</span></p>
-            <p className="text-gray-500 mt-2">// 1. Verify Clerk session</p>
-            <p><span className="text-blue-400">const</span> {"{ userId }"} = <span className="text-yellow-400">await auth()</span></p>
-            <p><span className="text-gray-500">if (!userId) return 401</span></p>
-            <p className="text-gray-500 mt-2">// 2. Auto-create user if first time</p>
-            <p><span className="text-blue-400">let</span> user = <span className="text-yellow-400">await getUser(userId)</span></p>
-            <p><span className="text-gray-500">if (!user) await createUser(userId, email)</span></p>
-            <p className="text-gray-500 mt-2">// 3. Check plan limit</p>
-            <p><span className="text-blue-400">const</span> ok = <span className="text-yellow-400">await checkLimit(userId)</span></p>
-            <p><span className="text-gray-500">if (!ok) return 403 limit_reached</span></p>
-            <p className="text-gray-500 mt-2">// 4. Call Groq LLM</p>
-            <p><span className="text-blue-400">const</span> replies = <span className="text-yellow-400">await groq.chat.completions.create(...)</span></p>
-            <p className="text-gray-500 mt-2">// 5. Increment usage + save history</p>
-            <p><span className="text-yellow-400">await incrementUsage(userId)</span></p>
-            <p><span className="text-gray-500">supabase.from(&apos;reply_history&apos;).insert(...) // fire and forget</span></p>
-            <p className="text-gray-500 mt-2">// 6. Return to client</p>
-            <p><span className="text-green-400">return</span> {"{ replies }"}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer CTA */}
-      <section className="bg-black px-4 py-16 text-center">
-        <h2 className="text-2xl font-bold text-white mb-3">See it live</h2>
-        <p className="text-gray-400 text-sm mb-8">The full product is deployed and working.</p>
-        <div className="flex justify-center gap-4 flex-wrap">
-          <Link
-            href="/app"
-            className="px-6 py-3 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Try ReplyAI
-          </Link>
-          <a
-            href="https://github.com/sahilshityalkar/complaint-reply-generator"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-6 py-3 border border-white/20 text-white rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors"
-          >
-            GitHub repo
-          </a>
-        </div>
-      </section>
     </div>
   );
+}
+
+// ── Small reusable layout helpers ──────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-px w-5 bg-zinc-300" />
+      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function Divider() {
+  return <div className="max-w-4xl mx-auto px-6"><div className="h-px bg-zinc-100" /></div>;
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-3 flex-wrap">{children}</div>;
+}
+
+function Pill({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span className={`${color} text-white text-xs font-semibold px-3 py-1.5 rounded-lg`}>
+      {children}
+    </span>
+  );
+}
+
+function Arrow({ label, sub }: { label: string; sub: string }) {
+  return (
+    <div className="pl-4 flex flex-col gap-0.5">
+      <span className="text-zinc-500 text-xs">↓ {label}</span>
+      <span className="text-zinc-700 text-xs pl-3">{sub}</span>
+    </div>
+  );
+}
+
+function ConnectorDown() {
+  return <span className="text-zinc-700 text-xs">↓</span>;
 }
