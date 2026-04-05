@@ -393,43 +393,313 @@ Use React Context or Zustand to store the active business across components.
 
 ---
 
-## Build Order — Do This Exactly
+## Complete Todo List — Every Step to Build V3
 
-**Do NOT build V2 features (platform selector, thread mode, etc.) until this is done.**
-Every V2 feature depends on `business_id` existing in the schema.
-If you build platform selector first, you'll have to add `business_id` later and
-retrofit every table, every API route, and every query. That's rewriting everything.
+Work through this in order. Do not skip ahead.
+Each checkbox is one atomic task. Check it off before moving to the next.
 
-### Step 1 — Database migration (30 minutes)
-Run all SQL from this document in Supabase SQL Editor.
-Verify all new tables and columns appear correctly.
-Do not touch existing V1 data.
+---
 
-### Step 2 — Backend API routes (1 day)
-Build all `/api/businesses/*` routes.
-Build Jina scraping endpoint.
-Build Groq Whisper transcription endpoint.
-Build profile generation endpoint.
-Update `/api/generate` to require and use `businessId`.
+### PHASE A — Database Migration
+> Do this first. Everything depends on the schema being correct.
 
-### Step 3 — Business onboarding UI (1 day)
-Build 3-step business creation flow at `/app/businesses/new`.
-Build business switcher component.
-Add hard gate: cannot access tool without at least one business.
+- [ ] Open Supabase SQL Editor
+- [ ] Create `businesses` table (full SQL from Database Schema section above)
+- [ ] Create `custom_platforms` table (full SQL from Database Schema section above)
+- [ ] Run `ALTER TABLE usage ADD COLUMN business_id uuid REFERENCES businesses(id) ON DELETE CASCADE`
+- [ ] Run `ALTER TABLE usage DROP CONSTRAINT usage_user_id_month_key`
+- [ ] Run `ALTER TABLE usage ADD CONSTRAINT usage_user_business_month_key UNIQUE(user_id, business_id, month)`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN business_id uuid REFERENCES businesses(id) ON DELETE SET NULL`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN platform text DEFAULT 'dm'`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN thread_context text`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN was_edited boolean DEFAULT false`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN resolution text CHECK (resolution IN ('resolved','ongoing','worse'))`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN resolution_at timestamptz`
+- [ ] Run `ALTER TABLE reply_history ADD COLUMN resolution_email_sent boolean DEFAULT false`
+- [ ] Verify all new tables appear in Supabase Table Editor
+- [ ] Verify all new columns appear in usage and reply_history tables
+- [ ] Confirm existing V1 data is untouched (check users, old reply_history rows still there)
 
-### Step 4 — Custom platforms UI (half day)
-Build platform list at `/app/businesses/[id]/platforms`.
-Build manual creation form.
-Build AI instruction generator.
+---
 
-### Step 5 — Wire everything together (half day)
-Connect business switcher to `/api/generate`.
-Scope reply history to selected business.
-Scope usage badge to selected business.
+### PHASE B — Backend: Business API Routes
 
-### Step 6 — NOW build V2 features on top of this foundation
-Platform selector, thread mode, resolution tracking, etc.
-All of these now work cleanly because `business_id` exists everywhere.
+**Install new dependency first:**
+```bash
+npm install zustand
+```
+
+**B1 — lib/businesses.ts (helper functions)**
+- [ ] Create `src/lib/businesses.ts`
+- [ ] Add `getBusinesses(userId)` — fetch all businesses for a user
+- [ ] Add `getBusiness(businessId, userId)` — fetch one business (verify ownership)
+- [ ] Add `createBusiness(userId, data)` — insert new business row
+- [ ] Add `updateBusiness(businessId, userId, data)` — update business row
+- [ ] Add `deleteBusiness(businessId, userId)` — delete business row
+
+**B2 — POST /api/businesses**
+- [ ] Create `src/app/api/businesses/route.ts`
+- [ ] GET handler — return all businesses for logged-in user
+- [ ] POST handler — create new business, validate name is not empty, return created row
+
+**B3 — PUT + DELETE /api/businesses/[id]**
+- [ ] Create `src/app/api/businesses/[id]/route.ts`
+- [ ] PUT handler — update business fields, verify user owns this business
+- [ ] DELETE handler — delete business, verify user owns it, check no active history
+
+**B4 — POST /api/businesses/scrape**
+- [ ] Create `src/app/api/businesses/scrape/route.ts`
+- [ ] Accept `{ url: string }` in request body
+- [ ] Validate URL is a valid http/https URL
+- [ ] Fetch `https://r.jina.ai/${url}` with a 10s timeout
+- [ ] Truncate response to 3000 characters
+- [ ] Return `{ content: string }` — do NOT store this anywhere
+- [ ] Handle errors: invalid URL, timeout, Jina unreachable
+
+**B5 — POST /api/businesses/transcribe**
+- [ ] Create `src/app/api/businesses/transcribe/route.ts`
+- [ ] Accept audio blob as `multipart/form-data`
+- [ ] Send to Groq Whisper API: `groq.audio.transcriptions.create({ file, model: 'whisper-large-v3' })`
+- [ ] Return `{ transcript: string }`
+- [ ] Handle errors: file too large (max 25MB), unsupported format, Groq error
+- [ ] Do NOT store the audio file — only the transcript is returned
+
+**B6 — POST /api/businesses/generate-profile**
+- [ ] Create `src/app/api/businesses/generate-profile/route.ts`
+- [ ] Accept `{ websiteContent?: string, transcript?: string, businessName: string, industry: string }`
+- [ ] Build a Groq prompt combining all inputs (see Prompt Engineering section)
+- [ ] Call Groq with `llama-3.3-70b-versatile`
+- [ ] Parse JSON response: `{ description, tone_instruction, common_complaints[], brand_words[] }`
+- [ ] Return parsed object to frontend
+- [ ] Handle JSON parse errors with a fallback
+
+**B7 — Update /api/generate**
+- [ ] Open `src/app/api/generate/route.ts`
+- [ ] Add `businessId` to the request body destructuring
+- [ ] Fetch the business from Supabase: `getBusiness(businessId, userId)`
+- [ ] If business not found or doesn't belong to user → return 403
+- [ ] Pass `business` object to `buildPrompt()`
+- [ ] Add `business_id` field when saving to `reply_history`
+- [ ] Update `incrementUsage()` call to pass `businessId`
+
+**B8 — Update lib/usage.ts**
+- [ ] Update `incrementUsage(userId, businessId)` to include `businessId` in the upsert
+- [ ] Update `getUsage(userId, businessId)` to filter by both userId and businessId
+- [ ] Update `checkLimit(userId, businessId)` to use the updated getUsage
+- [ ] Update `increment_usage` Postgres function in Supabase SQL Editor:
+  ```sql
+  CREATE OR REPLACE FUNCTION increment_usage(p_user_id text, p_business_id uuid, p_month text)
+  RETURNS void AS $$
+  BEGIN
+    INSERT INTO usage (user_id, business_id, month, reply_count)
+    VALUES (p_user_id, p_business_id, p_month, 1)
+    ON CONFLICT (user_id, business_id, month)
+    DO UPDATE SET reply_count = usage.reply_count + 1;
+  END;
+  $$ LANGUAGE plpgsql;
+  ```
+
+**B9 — Custom Platforms API**
+- [ ] Create `src/app/api/platforms/route.ts`
+- [ ] GET handler — return default platforms list + custom platforms for given businessId
+- [ ] POST handler — create custom platform, validate businessId ownership
+
+- [ ] Create `src/app/api/platforms/[id]/route.ts`
+- [ ] PUT handler — update custom platform
+- [ ] DELETE handler — delete custom platform
+
+- [ ] Create `src/app/api/platforms/generate/route.ts`
+- [ ] Accept `{ description: string, businessId: string }`
+- [ ] Call Groq: convert plain English description into a structured prompt instruction
+- [ ] Return `{ instruction: string }`
+
+---
+
+### PHASE C — Business Context Store (Client-Side State)
+
+- [ ] Create `src/store/businessStore.ts` using Zustand
+  ```typescript
+  // Store: active business ID + business list
+  // Persisted to localStorage so selection survives page refresh
+  ```
+- [ ] Export `useBusinessStore` hook with:
+  - `activeBusiness: Business | null`
+  - `businesses: Business[]`
+  - `setActiveBusiness(business: Business)`
+  - `setBusinesses(businesses: Business[])`
+- [ ] Add `persist` middleware from Zustand so `activeBusiness` survives refresh
+
+---
+
+### PHASE D — Business Onboarding UI
+
+**D1 — Business list page**
+- [ ] Create `src/app/app/businesses/page.tsx`
+- [ ] Fetch all businesses for logged-in user
+- [ ] Show grid of business cards: name, industry, date created
+- [ ] Each card has Edit and Delete buttons
+- [ ] "Add new business" button → links to `/app/businesses/new`
+- [ ] Empty state: illustration + "Create your first business" CTA
+
+**D2 — Business creation: Step 1 (Basic info)**
+- [ ] Create `src/app/app/businesses/new/page.tsx`
+- [ ] Step 1 UI: business name input, industry input, website URL input (optional)
+- [ ] Progress indicator showing Step 1 of 3
+- [ ] Validate: name required (min 2 chars), industry required
+- [ ] "Next" button → moves to Step 2
+- [ ] Store step 1 data in local component state (not DB yet)
+
+**D3 — Business creation: Step 2 (Voice or text)**
+- [ ] Step 2 UI: two options side by side
+- [ ] **Option A — Record voice note:**
+  - [ ] "Start Recording" button using browser `MediaRecorder` API
+  - [ ] Show live recording timer (max 60 seconds, auto-stop)
+  - [ ] "Stop" button to end recording early
+  - [ ] After recording: show waveform or "Recording complete (0:42)" confirmation
+  - [ ] "Re-record" option if they want to try again
+  - [ ] On "Next": POST audio blob to `/api/businesses/transcribe`, show loading spinner
+- [ ] **Option B — Type it out:**
+  - [ ] Textarea with placeholder: "Describe your business and how you communicate with customers..."
+  - [ ] Min 50 characters before "Next" is enabled
+- [ ] "Skip this step" link — they can add context later from settings
+
+**D4 — Business creation: Step 3 (AI processing + review)**
+- [ ] While loading:
+  - [ ] Show animated processing screen: "Analysing your website... Generating your business profile..."
+  - [ ] Behind the scenes: call `/api/businesses/scrape` (if URL provided) then `/api/businesses/generate-profile`
+- [ ] After loading: show the generated profile for review
+  - [ ] Editable field: Business description (2 sentences)
+  - [ ] Editable field: Communication tone
+  - [ ] Editable chips: Common complaint types (can add/remove)
+  - [ ] User can edit any field before saving
+- [ ] "Create business" button → POST to `/api/businesses`, redirect to `/app`
+- [ ] On success: set this new business as active in Zustand store
+
+**D5 — Business switcher component**
+- [ ] Create `src/components/BusinessSwitcher.tsx`
+- [ ] Dropdown showing active business name with chevron icon
+- [ ] Opens to show all businesses with radio-style selection
+- [ ] "Manage businesses" link at bottom → `/app/businesses`
+- [ ] "Add new business" link → `/app/businesses/new`
+- [ ] On selection: update Zustand store, store in localStorage
+- [ ] Place this at the very top of `src/app/app/page.tsx`
+
+**D6 — Hard gate: no business, no tool**
+- [ ] In `src/app/app/page.tsx`:
+  - [ ] Fetch user's businesses on page load
+  - [ ] If `businesses.length === 0` → show onboarding screen instead of tool
+  - [ ] Onboarding screen: headline, description, "Create your first business →" button
+  - [ ] If businesses exist → show tool with BusinessSwitcher at top
+
+**D7 — Edit business page**
+- [ ] Create `src/app/app/businesses/[id]/page.tsx`
+- [ ] Pre-fill form with existing business data
+- [ ] Same fields as creation: name, industry, website URL, description, tone, common complaints
+- [ ] "Re-scrape website" button — re-runs scrape + profile generation
+- [ ] "Save changes" button → PUT to `/api/businesses/[id]`
+- [ ] "Delete business" button with confirmation dialog
+
+---
+
+### PHASE E — Custom Platforms UI
+
+- [ ] Create `src/app/app/businesses/[id]/platforms/page.tsx`
+- [ ] Show list of default platforms (read-only, cannot delete)
+- [ ] Show list of user's custom platforms for this business
+- [ ] Each custom platform: name, icon, instruction preview, Edit / Delete buttons
+
+- [ ] **Add custom platform form:**
+  - [ ] Name input
+  - [ ] Icon picker (emoji selector, 8 options)
+  - [ ] Instruction textarea (write manually)
+  - [ ] OR: "Describe it in plain English" textarea + "Generate instruction" button
+    - [ ] On click: POST to `/api/platforms/generate`, show loading, fill instruction field with result
+  - [ ] User can edit generated instruction before saving
+  - [ ] "Save platform" → POST to `/api/platforms`
+
+- [ ] Link to platforms page from business edit page: "Manage platforms →"
+
+---
+
+### PHASE F — Wire Everything Together
+
+- [ ] Update `src/components/ReplyGenerator.tsx`:
+  - [ ] Remove hardcoded `BIZ_TYPES` array (replaced by business context)
+  - [ ] Read active business from Zustand store
+  - [ ] Pass `businessId` in every `/api/generate` POST request
+  - [ ] Show selected business name above the textarea: "Replying as: Photography Studio"
+
+- [ ] Update `src/components/UsageBadge.tsx`:
+  - [ ] Pass `businessId` to `/api/usage` GET request
+  - [ ] Show usage scoped to selected business
+
+- [ ] Update `src/app/dashboard/page.tsx`:
+  - [ ] Add business filter: "All businesses" dropdown + individual business filter
+  - [ ] Default: show history for all businesses
+  - [ ] Each history card shows which business it was generated for
+
+- [ ] Update `src/app/api/usage/route.ts`:
+  - [ ] Accept `businessId` as query param
+  - [ ] Filter usage query by businessId
+
+- [ ] Update middleware to protect `/app/businesses` routes
+
+---
+
+### PHASE G — V2 Features (build on top of V3 foundation)
+
+Now that `business_id` exists everywhere, build these in order:
+
+**G1 — Platform Selector**
+- [ ] Create `src/components/PlatformSelector.tsx`
+- [ ] Fetch default + custom platforms from `/api/platforms?businessId=xxx`
+- [ ] Render as icon row: default platforms + custom platforms inline
+- [ ] Pass selected platform to `/api/generate`
+- [ ] Update `buildPrompt()` in `src/lib/prompts.ts` with platform instructions
+
+**G2 — Thread Mode**
+- [ ] Add toggle to `ReplyGenerator`: "Single message" / "Full conversation"
+- [ ] When full conversation: second textarea appears for thread context
+- [ ] Pass `threadContext` to `/api/generate`
+- [ ] Update `buildPrompt()` to handle thread context
+
+**G3 — Inline Reply Editor**
+- [ ] Update `ReplyCard.tsx`: text becomes editable on click
+- [ ] "Copy edited version" replaces "Copy" while editing
+- [ ] On copy after edit: PATCH `/api/reply-history/[id]` to set `was_edited = true`
+
+**G4 — Quick Templates**
+- [ ] Create `src/components/QuickTemplates.tsx`
+- [ ] Add `quick_templates jsonb` column to `businesses` table (not users — scoped per business)
+- [ ] Fetch templates from business profile
+- [ ] Render as chips below textarea
+- [ ] "Save as template" button after generation
+
+**G5 — Resolution Tracking**
+- [ ] Create `src/app/api/resolve/route.ts`
+- [ ] Create `src/app/api/cron/resolution-emails/route.ts`
+- [ ] Create `vercel.json` with cron schedule
+- [ ] Create resolution email HTML template in `src/lib/resend.ts`
+- [ ] Update dashboard to show resolution rate
+
+---
+
+### PHASE H — Final QA Before Launch
+
+- [ ] Test creating a business with website URL — verify profile is generated correctly
+- [ ] Test creating a business with voice note — verify transcription works
+- [ ] Test creating a business with neither — verify manual text fallback works
+- [ ] Test switching between 2 businesses — verify replies use correct context
+- [ ] Test custom platform creation (manual) — verify it appears in selector
+- [ ] Test custom platform creation (AI-generated) — verify instruction makes sense
+- [ ] Test generating a reply — verify business context is in the output
+- [ ] Test usage tracking — verify count increments correctly per business
+- [ ] Test deleting a business — verify history is preserved (SET NULL, not CASCADE)
+- [ ] Test hard gate — sign up fresh, verify tool is blocked until business created
+- [ ] Test on mobile — every page
+- [ ] Test in Chrome, Firefox, Safari
+- [ ] Run `npx tsc --noEmit` — zero TypeScript errors
+- [ ] Deploy to Vercel — smoke test production
 
 ---
 
