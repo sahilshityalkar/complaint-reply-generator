@@ -53,15 +53,29 @@ which shows you your users, queries, and data in a clean UI for free.
 a dashboard, Row Level Security, real-time subscriptions, and a generous free
 tier. You don't need to manage a database server.
 
-### Payments: Stripe
-**Why:** Industry standard. Handles subscriptions, invoices, failed payment
-retries, and webhooks. Has a test mode so you can build without real money.
-Stripe Checkout handles the entire payment UI — you don't build a card form.
+### Payments: Deferred to Phase 7 (Post-Launch)
+**Why deferred:** Stripe requires business registration + KYC (GST/PAN) for
+Indian accounts which adds friction before the product is validated. The goal
+is to ship a working product first, then add monetization.
 
-### AI: Anthropic Claude API (claude-sonnet-4-5)
-**Why over OpenAI GPT:** Claude produces more nuanced, empathetic writing —
-which is exactly what customer service replies need. It follows the tone
-instructions more precisely. The API is reliable and fast.
+**Options being evaluated for India:**
+- **Razorpay** — Indian-first, easier KYC, supports UPI/cards/netbanking (most likely choice)
+- **Lemon Squeezy** — Merchant of record, handles GST automatically, no Indian entity needed
+- **Paddle** — Similar to Lemon Squeezy, good for SaaS
+
+**Decision point:** After first 20–30 real users give feedback, pick one and implement.
+Stripe is still an option if you register a business entity.
+
+### AI: Groq API (llama-3.3-70b-versatile)
+**Why Groq for now:** Groq has a generous free tier — perfect for development
+and testing without any upfront cost. Groq's LPU hardware makes inference
+extremely fast (often <1s). Uses `groq-sdk` which is OpenAI-compatible, so
+migrating to another provider later is trivial. Model choice:
+- `llama-3.3-70b-versatile` — most capable, best reply quality (default)
+- `llama-3.1-8b-instant` — faster fallback if rate limits hit
+
+**When to switch:** Once you have paying users, evaluate Anthropic Claude or
+OpenAI GPT-4o for reply quality. The swap is a 5-line code change.
 
 ### Hosting: Vercel
 **Why:** One-click deploy from GitHub. Free hobby tier. Automatic HTTPS.
@@ -198,13 +212,10 @@ replyai/
 │   └── api/
 │       ├── generate/
 │       │   └── route.ts            # POST: call Claude, check limits, save usage
-│       ├── webhooks/
-│       │   ├── clerk/
-│       │   │   └── route.ts        # POST: create user in DB on signup
-│       │   └── stripe/
-│       │       └── route.ts        # POST: update plan on payment/cancel
-│       └── create-checkout/
-│           └── route.ts            # POST: create Stripe Checkout session
+│       └── webhooks/
+│           └── clerk/
+│               └── route.ts        # POST: create user in DB on signup
+│   # stripe webhook + create-checkout → added in Phase 7 when payments are implemented
 │
 ├── components/
 │   ├── Navbar.tsx                  # Top nav with login/logout
@@ -218,8 +229,8 @@ replyai/
 ├── lib/
 │   ├── supabase.ts                 # Supabase client (server-side)
 │   ├── supabase-browser.ts         # Supabase client (client-side, if needed)
-│   ├── stripe.ts                   # Stripe client
-│   ├── anthropic.ts                # Anthropic client
+│   ├── groq.ts                     # Groq client
+│   # stripe.ts → added in Phase 7 when payments are implemented
 │   ├── usage.ts                    # Helper: getUsage(), incrementUsage(), checkLimit()
 │   └── plans.ts                    # Plan limits config (free=10, starter=100, pro=∞)
 │
@@ -239,8 +250,8 @@ replyai/
 Create a `.env.local` file in your project root. Copy from `.env.local.example`.
 
 ```bash
-# Anthropic — https://console.anthropic.com
-ANTHROPIC_API_KEY=sk-ant-...
+# Groq — https://console.groq.com → API Keys
+GROQ_API_KEY=gsk_...
 
 # Clerk — https://dashboard.clerk.com → API Keys
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -252,14 +263,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...       # Only used server-side (webhooks)
 
-# Stripe — https://dashboard.stripe.com → Developers → API Keys
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...        # From Stripe → Webhooks
-
-# Stripe Price IDs — create products in Stripe dashboard first
-STRIPE_STARTER_PRICE_ID=price_...     # $9/month recurring
-STRIPE_PRO_PRICE_ID=price_...         # $19/month recurring
+# Payments — DEFERRED to Phase 7. Leave these empty until then.
+# Will add Razorpay or Lemon Squeezy keys here after product validation.
+# PAYMENT_KEY=...
 
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -354,7 +360,7 @@ Work through this in order. Do not skip ahead. Each step depends on the previous
 - [ ] Delete the default boilerplate in `app/page.tsx` and `app/globals.css`
 - [ ] Install dependencies:
   ```bash
-  npm install @anthropic-ai/sdk @clerk/nextjs @supabase/supabase-js stripe svix resend clsx
+  npm install groq-sdk @clerk/nextjs @supabase/supabase-js svix resend react-hot-toast clsx
   ```
 - [ ] Create `.gitignore` — add `.env.local` to it
 - [ ] Create `.env.local` file with all the variable names (values empty for now)
@@ -366,7 +372,7 @@ Work through this in order. Do not skip ahead. Each step depends on the previous
 
 ### Phase 1 — Core AI Tool (Days 2–4, ~1 day)
 
-- [ ] Create `lib/anthropic.ts` — export the Anthropic client
+- [ ] Create `lib/groq.ts` — export the Groq client
 - [ ] Create `app/api/generate/route.ts` — hardcode the logic without auth for now (just get it working)
 - [ ] Create `components/ReplyGenerator.tsx` — the textarea, tone buttons, generate button, results
 - [ ] Create `components/ReplyCard.tsx` — individual reply with copy button
@@ -433,46 +439,26 @@ Work through this in order. Do not skip ahead. Each step depends on the previous
 
 ---
 
-### Phase 4 — Stripe Payments (Days 7–10, ~1.5 days)
+### Phase 4 — Payments (DEFERRED — implement after real users)
 
-- [ ] Create a Stripe account at stripe.com
-- [ ] Create two products in Stripe Dashboard:
-  - "ReplyAI Starter" — $9.00/month recurring → copy the Price ID
-  - "ReplyAI Pro" — $19.00/month recurring → copy the Price ID
-- [ ] Add all Stripe keys and Price IDs to `.env.local`
-- [ ] Create `lib/stripe.ts` — export the Stripe client
-- [ ] Create `app/api/create-checkout/route.ts`:
-  - Accept `{ priceId }` in request body
-  - Create Stripe Checkout session
-  - Set `success_url` to `/app?upgraded=true`
-  - Set `cancel_url` to `/pricing`
-  - Set `client_reference_id` to the Clerk user ID
-  - Return `{ url: session.url }`
-- [ ] Create `app/pricing/page.tsx` with the 3 plan cards (Free, Starter, Pro)
-  - Each paid plan has an "Upgrade" button that calls `/api/create-checkout`
-  - On success, redirect to Stripe Checkout URL
-- [ ] Create `app/api/webhooks/stripe/route.ts`:
-  - Verify signature with `stripe.webhooks.constructEvent()`
-  - Handle `checkout.session.completed`:
-    - Get `client_reference_id` (= Clerk user ID)
-    - Determine which plan from the price ID
-    - Update `users.plan` in Supabase
-    - Store `stripe_customer_id` and `stripe_subscription_id`
-  - Handle `customer.subscription.deleted`:
-    - Find user by `stripe_customer_id`
-    - Set `users.plan = 'free'`
-- [ ] Set up Stripe webhook in Stripe Dashboard:
-  - URL: `https://your-app.vercel.app/api/webhooks/stripe`
-  - Events: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`
-  - Copy signing secret into `.env.local` as `STRIPE_WEBHOOK_SECRET`
-- [ ] Test with Stripe test card `4242 4242 4242 4242`:
-  - Click upgrade → Stripe Checkout → pay → get redirected back → plan updates in Supabase
-- [ ] Add `<UpgradeModal />` that appears when free user hits 10 reply limit
-  - Show "You've used all 10 free replies this month"
-  - Show upgrade buttons for Starter and Pro
-  - On click → call create-checkout → redirect to Stripe
+> **Skip this for now.** Build the product, get real users, collect feedback.
+> Come back here once people are actually using it and asking how to pay.
 
-**Checkpoint:** Full payment flow works in test mode. Plan upgrades instantly.
+**Decision checklist before implementing payments:**
+- [ ] Have at least 20–30 real users actively using the tool
+- [ ] Received feedback that people would pay for more replies
+- [ ] Decided on payment provider (Razorpay vs Lemon Squeezy — see Tech Stack section)
+
+**When ready, the payment flow will:**
+1. `<UpgradeModal />` appears when free user hits 10-reply limit
+2. User clicks upgrade → redirected to payment provider checkout
+3. Webhook fires on successful payment → update `users.plan` in Supabase
+4. User gets bumped to Starter (100 replies) or Pro (unlimited)
+
+**Placeholder in the UI:** For now, the `<UpgradeModal />` can show a
+"Coming soon — join the waitlist" form (collect emails with Resend).
+
+**Checkpoint (when you do implement):** Full payment flow works. Plan upgrades instantly.
 
 ---
 
@@ -579,6 +565,22 @@ This is the exact system prompt structure for your `/api/generate` route.
 The quality of this prompt determines the quality of your product.
 
 ```typescript
+// lib/groq.ts
+import Groq from 'groq-sdk'
+export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+export const MODEL = 'llama-3.3-70b-versatile'  // swap to 'llama-3.1-8b-instant' for speed
+
+// In your /api/generate route:
+const completion = await groq.chat.completions.create({
+  model: MODEL,
+  messages: [{ role: 'user', content: prompt }],
+  temperature: 0.7,
+})
+const raw = completion.choices[0].message.content
+const { replies } = JSON.parse(raw)
+```
+
+```typescript
 const prompt = `You are a professional customer service expert helping a ${bizType} owner 
 respond to a difficult customer complaint with empathy and professionalism.
 
@@ -644,14 +646,15 @@ npx create-next-app@latest replyai --typescript --tailwind --app --src-dir=false
 cd replyai
 
 npm install \
-  @anthropic-ai/sdk \
+  groq-sdk \
   @clerk/nextjs \
   @supabase/supabase-js \
-  stripe \
   svix \
   resend \
   react-hot-toast \
   clsx
+
+# stripe is NOT installed yet — deferred to Phase 7
 ```
 
 ---
