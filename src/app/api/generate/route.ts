@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, MODEL } from "@/lib/groq";
-import { getUser, checkLimit, incrementUsage } from "@/lib/usage";
+import { getUser, createUser, checkLimit, incrementUsage } from "@/lib/usage";
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -18,13 +18,12 @@ export async function POST(req: Request) {
     );
   }
 
-  // Check user exists in DB
-  const user = await getUser(userId);
+  // Get or auto-create user in DB (handles users who signed up before webhook was configured)
+  let user = await getUser(userId);
   if (!user) {
-    return NextResponse.json(
-      { error: "User not found. Please sign out and sign back in." },
-      { status: 404 }
-    );
+    const email = sessionClaims?.email as string ?? "";
+    await createUser(userId, email);
+    user = await getUser(userId);
   }
 
   // Check usage limit
