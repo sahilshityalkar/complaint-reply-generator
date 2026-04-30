@@ -20,12 +20,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const body = await req.json();
 
-  // Handle set_default separately
-  if (body.set_default) {
+  // Handle set_default separately and strip it from the body
+  const { set_default, ...cleanBody } = body;
+
+  if (set_default) {
     await setDefaultProfile(id, userId);
   }
 
-  const profile = await updateProfile(id, userId, body);
+  const profile = await updateProfile(id, userId, cleanBody);
   if (!profile) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ profile });
