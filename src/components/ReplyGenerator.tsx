@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import ReplyCard from "./ReplyCard";
 import UsageBadge from "./UsageBadge";
@@ -31,6 +32,22 @@ export default function ReplyGenerator() {
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [refreshBadge, setRefreshBadge] = useState(0);
+  const [profiles, setProfiles] = useState<Array<{ id: string; name: string; is_default: boolean }>>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/voice/profiles")
+      .then((res) => res.json())
+      .then((data) => {
+        const list = data.profiles || [];
+        setProfiles(list);
+        const defaultProfile = list.find((p: typeof profiles[number]) => p.is_default);
+        if (defaultProfile) setSelectedProfileId(defaultProfile.id);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProfiles(false));
+  }, []);
 
   async function handleGenerate() {
     if (complaint.trim().length < 20) {
@@ -47,7 +64,7 @@ export default function ReplyGenerator() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint, tone, bizType }),
+        body: JSON.stringify({ complaint, tone, bizType, profile_id: selectedProfileId || undefined }),
       });
 
       const data = await res.json();
@@ -136,6 +153,38 @@ export default function ReplyGenerator() {
             ))}
           </div>
         </div>
+
+        {/* Brand Voice Profile */}
+        {!loadingProfiles && profiles.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Brand Voice
+            </label>
+            <select
+              value={selectedProfileId}
+              onChange={(e) => setSelectedProfileId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+            >
+              <option value="">No brand voice (generic replies)</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.is_default ? "(default)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {profiles.length === 0 && !loadingProfiles && (
+          <div className="text-center py-2">
+            <Link
+              href="/app/voice-setup"
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              Set up your brand voice for better replies →
+            </Link>
+          </div>
+        )}
 
         {/* Generate button */}
         <button

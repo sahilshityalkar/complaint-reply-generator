@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { groq, MODEL } from "@/lib/groq";
 import { getUser, createUser, checkLimit, incrementUsage } from "@/lib/usage";
 import { supabase } from "@/lib/supabase";
+import { getProfile, getDefaultProfile, buildGeneratePrompt } from "@/lib/voice";
 
 export async function POST(req: Request) {
   const { userId, sessionClaims } = await auth();
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { complaint, tone, bizType } = await req.json();
+  const { complaint, tone, bizType, profile_id } = await req.json();
 
   if (!complaint || complaint.trim().length < 20) {
     return NextResponse.json(
@@ -36,44 +37,17 @@ export async function POST(req: Request) {
     );
   }
 
-  const prompt = `You are a professional customer service expert helping a ${bizType} owner respond to a difficult customer complaint with empathy and professionalism.
+  // Load brand profile (or use default)
+  const profile = profile_id
+    ? await getProfile(profile_id, userId)
+    : await getDefaultProfile(userId);
 
-The customer wrote:
-"""
-${complaint}
-"""
-
-Generate exactly 3 different professional reply variations. The user's preferred primary tone is: ${tone}.
-
-Return ONLY valid JSON in this exact format, no extra text, no markdown:
-{
-  "replies": [
-    {
-      "label": "Empathetic & Understanding",
-      "tone": "empathetic",
-      "text": "..."
-    },
-    {
-      "label": "Firm & Solution-Focused",
-      "tone": "firm",
-      "text": "..."
-    },
-    {
-      "label": "Apologetic & Generous",
-      "tone": "apologetic",
-      "text": "..."
-    }
-  ]
-}
-
-Rules for every reply:
-- 3 to 5 sentences maximum
-- Professional but human — not robotic
-- Address the specific issue mentioned (do not give generic replies)
-- Do not include placeholder text like [Your Name] or [Order Number]
-- The first reply must match the requested tone (${tone}) most closely
-- Each reply should be meaningfully different from the others
-- For ${bizType}: use industry-appropriate language and empathy`;
+  const prompt = buildGeneratePrompt({
+    complaint,
+    tone,
+    bizType,
+    profile: profile || undefined,
+  });
 
   try {
     const completion = await groq.chat.completions.create({
@@ -94,6 +68,7 @@ Rules for every reply:
       tone,
       business_type: bizType,
       replies,
+      profile_id: profile?.id || null,
     }).then(() => null);
 
     return NextResponse.json({ replies });
