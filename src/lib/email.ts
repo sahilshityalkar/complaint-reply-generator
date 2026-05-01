@@ -1,8 +1,7 @@
 import { Resend } from "resend";
 
-// ✅ Production: Replace with your verified Resend domain (e.g. "replies@yourdomain.com")
-// ✅ Testing: onboarding@resend.dev works but only sends to your verified email
-const FROM_DOMAIN = "onboarding@resend.dev";
+// ✅ Production: Your verified Resend domain
+const FROM_DOMAIN = "replies@replies.mockjee.com";
 
 // Lazy singleton — avoids Resend SDK errors during static build
 let _resend: Resend | null = null;
