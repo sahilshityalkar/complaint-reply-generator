@@ -8,9 +8,9 @@ import UsageBadge from "./UsageBadge";
 import UpgradeModal from "./UpgradeModal";
 import EmailPromptModal from "./EmailPromptModal";
 
-const TONES = ["Empathetic", "Firm", "Apologetic", "Professional"];
-
-const BIZ_TYPES = [
+// Default options (always shown)
+const DEFAULT_TONES = ["Empathetic", "Firm", "Apologetic", "Professional"];
+const DEFAULT_BIZ_TYPES = [
   "Etsy shop",
   "Shopify store",
   "Freelancer",
@@ -18,6 +18,12 @@ const BIZ_TYPES = [
   "SaaS product",
   "Other",
 ];
+
+const REPLY_LENGTHS = [
+  { value: "short", label: "Short", desc: "2-3 sentences" },
+  { value: "medium", label: "Medium", desc: "3-5 sentences" },
+  { value: "long", label: "Long", desc: "6-10 sentences" },
+] as const;
 
 interface Reply {
   label: string;
@@ -29,6 +35,7 @@ export default function ReplyGenerator() {
   const [complaint, setComplaint] = useState("");
   const [tone, setTone] = useState("Empathetic");
   const [bizType, setBizType] = useState("Etsy shop");
+  const [replyLength, setReplyLength] = useState<"short" | "medium" | "long">("medium");
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -42,17 +49,34 @@ export default function ReplyGenerator() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [pendingSendIndex, setPendingSendIndex] = useState<number | null>(null);
 
+  // Custom options state
+  const [customTones, setCustomTones] = useState<string[]>([]);
+  const [customBizTypes, setCustomBizTypes] = useState<string[]>([]);
+  const [newToneInput, setNewToneInput] = useState("");
+  const [newBizTypeInput, setNewBizTypeInput] = useState("");
+  const [addingTone, setAddingTone] = useState(false);
+  const [addingBizType, setAddingBizType] = useState(false);
+
+  // Fetch profiles and custom options on mount
   useEffect(() => {
     fetch("/api/voice/profiles")
       .then((res) => res.json())
       .then((data) => {
         const list = data.profiles || [];
         setProfiles(list);
-        const defaultProfile = list.find((p: typeof profiles[number]) => p.is_default);
+        const defaultProfile = list.find((p: typeof list[0]) => p.is_default);
         if (defaultProfile) setSelectedProfileId(defaultProfile.id);
       })
       .catch(() => {})
       .finally(() => setLoadingProfiles(false));
+
+    fetch("/api/user/options")
+      .then((res) => res.json())
+      .then((data) => {
+        setCustomTones(data.custom_tones || []);
+        setCustomBizTypes(data.custom_biz_types || []);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleGenerate() {
@@ -70,7 +94,13 @@ export default function ReplyGenerator() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint, tone, bizType, profile_id: selectedProfileId || undefined }),
+        body: JSON.stringify({
+          complaint,
+          tone,
+          bizType,
+          replyLength,
+          profile_id: selectedProfileId || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -139,12 +169,104 @@ export default function ReplyGenerator() {
 
   async function handleSendClick(index: number) {
     if (customerEmail.trim()) {
-      // Generate a subject from the complaint
       const defaultSubject = `Re: ${bizType} — regarding your recent message`;
       await handleSendEmail(index, customerEmail.trim(), defaultSubject);
     } else {
       setPendingSendIndex(index);
       setShowEmailModal(true);
+    }
+  }
+
+  // Custom options handlers
+  async function handleAddTone() {
+    const name = newToneInput.trim();
+    if (!name) return;
+    if (customTones.includes(name) || DEFAULT_TONES.includes(name)) {
+      toast.error("This tone already exists.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "tone", action: "add", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomTones(data.items);
+        setNewToneInput("");
+        setAddingTone(false);
+        toast.success(`Added custom tone: "${name}"`);
+      } else {
+        toast.error(data.error || "Failed to add tone.");
+      }
+    } catch {
+      toast.error("Failed to save custom tone.");
+    }
+  }
+
+  async function handleRemoveTone(name: string) {
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "tone", action: "remove", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomTones(data.items);
+        if (tone === name) setTone(DEFAULT_TONES[0]);
+        toast(`Removed tone: "${name}"`);
+      }
+    } catch {
+      toast.error("Failed to remove tone.");
+    }
+  }
+
+  async function handleAddBizType() {
+    const name = newBizTypeInput.trim();
+    if (!name) return;
+    if (customBizTypes.includes(name) || DEFAULT_BIZ_TYPES.includes(name)) {
+      toast.error("This business type already exists.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "biz-type", action: "add", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomBizTypes(data.items);
+        setNewBizTypeInput("");
+        setAddingBizType(false);
+        toast.success(`Added custom business type: "${name}"`);
+      } else {
+        toast.error(data.error || "Failed to add business type.");
+      }
+    } catch {
+      toast.error("Failed to save custom business type.");
+    }
+  }
+
+  async function handleRemoveBizType(name: string) {
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "biz-type", action: "remove", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomBizTypes(data.items);
+        if (bizType === name) setBizType(DEFAULT_BIZ_TYPES[0]);
+        toast(`Removed business type: "${name}"`);
+      }
+    } catch {
+      toast.error("Failed to remove business type.");
     }
   }
 
@@ -191,7 +313,7 @@ export default function ReplyGenerator() {
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Business type</label>
           <div className="flex flex-wrap gap-2">
-            {BIZ_TYPES.map((b) => (
+            {DEFAULT_BIZ_TYPES.map((b) => (
               <button
                 key={b}
                 onClick={() => setBizType(b)}
@@ -205,13 +327,75 @@ export default function ReplyGenerator() {
               </button>
             ))}
           </div>
+          {/* Custom business types */}
+          {customBizTypes.length > 0 && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              <div className="flex flex-wrap gap-2">
+                {customBizTypes.map((b) => (
+                  <div key={b} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setBizType(b)}
+                      className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                        bizType === b
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      {b}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveBizType(b)}
+                      className="text-gray-400 hover:text-red-500 transition-colors text-xs px-1"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {/* Add custom business type */}
+          {addingBizType ? (
+            <div className="flex gap-2 items-center mt-1">
+              <input
+                type="text"
+                value={newBizTypeInput}
+                onChange={(e) => setNewBizTypeInput(e.target.value)}
+                placeholder="e.g. Consulting Agency"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                onKeyDown={(e) => e.key === "Enter" && handleAddBizType()}
+                autoFocus
+              />
+              <button
+                onClick={handleAddBizType}
+                className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-medium"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setAddingBizType(false); setNewBizTypeInput(""); }}
+                className="px-3 py-1.5 rounded-lg text-gray-500 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingBizType(true)}
+              className="self-start text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              + Add custom business type
+            </button>
+          )}
         </div>
 
         {/* Tone selector */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Your preferred tone</label>
           <div className="flex flex-wrap gap-2">
-            {TONES.map((t) => (
+            {DEFAULT_TONES.map((t) => (
               <button
                 key={t}
                 onClick={() => setTone(t)}
@@ -222,6 +406,89 @@ export default function ReplyGenerator() {
                 }`}
               >
                 {t}
+              </button>
+            ))}
+          </div>
+          {/* Custom tones */}
+          {customTones.length > 0 && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              <div className="flex flex-wrap gap-2">
+                {customTones.map((t) => (
+                  <div key={t} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setTone(t)}
+                      className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                        tone === t
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveTone(t)}
+                      className="text-gray-400 hover:text-red-500 transition-colors text-xs px-1"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {/* Add custom tone */}
+          {addingTone ? (
+            <div className="flex gap-2 items-center mt-1">
+              <input
+                type="text"
+                value={newToneInput}
+                onChange={(e) => setNewToneInput(e.target.value)}
+                placeholder="e.g. Warm & Humorous"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                onKeyDown={(e) => e.key === "Enter" && handleAddTone()}
+                autoFocus
+              />
+              <button
+                onClick={handleAddTone}
+                className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-medium"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setAddingTone(false); setNewToneInput(""); }}
+                className="px-3 py-1.5 rounded-lg text-gray-500 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingTone(true)}
+              className="self-start text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              + Add custom tone
+            </button>
+          )}
+        </div>
+
+        {/* Reply length */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Reply length</label>
+          <div className="flex gap-1.5">
+            {REPLY_LENGTHS.map((rl) => (
+              <button
+                key={rl.value}
+                onClick={() => setReplyLength(rl.value)}
+                className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${
+                  replyLength === rl.value
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <span className="font-medium">{rl.label}</span>
+                <span className="block text-[10px] opacity-70">{rl.desc}</span>
               </button>
             ))}
           </div>

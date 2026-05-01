@@ -276,9 +276,10 @@ export function buildGeneratePrompt(params: {
   complaint: string;
   tone: string;
   bizType: string;
+  replyLength?: "short" | "medium" | "long";
   profile?: BrandProfile;
 }): string {
-  const { complaint, tone, bizType, profile } = params;
+  const { complaint, tone, bizType, replyLength = "medium", profile } = params;
 
   let voiceBlock = `You are a professional customer service expert helping a ${bizType} owner respond to a difficult customer complaint with empathy and professionalism.`;
 
@@ -337,6 +338,13 @@ Write as if you ARE ${profile.business_name}. Match the brand's voice exactly.`;
   ]
 }`;
 
+  // Reply length rules
+  const lengthRules: Record<string, string> = {
+    short: "- Keep each reply short: 2-3 sentences max. Be concise and direct.\n",
+    medium: "- Keep each reply moderate: 3-5 sentences. Professional and clear.\n",
+    long: "- Write detailed replies: 6-10 sentences. Thorough but not verbose.\n",
+  };
+
   return `${voiceBlock}
 
 The customer wrote:
@@ -350,8 +358,7 @@ Return ONLY valid JSON in this exact format, no extra text, no markdown:
 ${jsonFormat}
 
 Rules for every reply:
-- 3 to 5 sentences maximum
-- Professional but human — not robotic
+${lengthRules[replyLength] ?? lengthRules.medium}- Professional but human — not robotic
 - Address the specific issue mentioned (do not give generic replies)
 - Do not include placeholder text like [Your Name] or [Order Number]
 - The first reply must match the requested tone (${tone}) most closely

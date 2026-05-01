@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { complaint, tone, bizType, profile_id } = await req.json();
+  const { complaint, tone, bizType, profile_id, replyLength } = await req.json();
 
   if (!complaint || complaint.trim().length < 20) {
     return NextResponse.json(
@@ -19,6 +19,10 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  // Validate replyLength if provided
+  const validLengths = ["short", "medium", "long"];
+  const length = validLengths.includes(replyLength) ? replyLength : "medium";
 
   // Get or auto-create user in DB (handles users who signed up before webhook was configured)
   let user = await getUser(userId);
@@ -46,6 +50,7 @@ export async function POST(req: Request) {
     complaint,
     tone,
     bizType,
+    replyLength: length,
     profile: profile || undefined,
   });
 
