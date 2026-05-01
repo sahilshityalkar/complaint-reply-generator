@@ -39,7 +39,10 @@
 | UX Polish | UsageBadge, UpgradeModal, toast notifications, character counter | ✅ Done |
 | Reply History | reply_history table, fire-and-forget save, dashboard display | ✅ Done |
 | Build Page | Full engineering case study / marketing page | ✅ Done |
-| **Brand Voice** | 🆕 Profiles, setup wizard, prompt injection, voice DNA gen | ✅ Done |
+| **Brand Voice** | Profiles, setup wizard, prompt injection, voice DNA gen | ✅ Done |
+| **Send Reply via Email** | Resend API, POST /api/email/send, one-click send button | ✅ Done |
+| **Sidebar Layout** | Replaced top navbar with sidebar nav + plan badge + user | ✅ Done |
+| **Domain Setup** | replies.mockjee.com verified in Resend, DNS configured | ✅ Done |
 
 ### What's NOT Built Yet (Future Phases)
 
