@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-const FROM_DOMAIN = "replies@replyai.app";
+// ✅ Production: Replace with your verified Resend domain (e.g. "replies@yourdomain.com")
+// ✅ Testing: onboarding@resend.dev works but only sends to your verified email
+const FROM_DOMAIN = "onboarding@resend.dev";
 
 // Lazy singleton — avoids Resend SDK errors during static build
 let _resend: Resend | null = null;
