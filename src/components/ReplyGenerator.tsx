@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import ReplyCard from "./ReplyCard";
 import UsageBadge from "./UsageBadge";
 import UpgradeModal from "./UpgradeModal";
+import EmailPromptModal from "./EmailPromptModal";
 
 const TONES = ["Empathetic", "Firm", "Apologetic", "Professional"];
 
@@ -35,6 +36,11 @@ export default function ReplyGenerator() {
   const [profiles, setProfiles] = useState<Array<{ id: string; name: string; is_default: boolean }>>([]);
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [sendingIndex, setSendingIndex] = useState<number | null>(null);
+  const [sentIndices, setSentIndices] = useState<Set<number>>(new Set());
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [pendingSendIndex, setPendingSendIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/voice/profiles")
@@ -89,6 +95,59 @@ export default function ReplyGenerator() {
     }
   }
 
+  async function handleSendEmail(replyIndex: number, email: string, subject: string) {
+    const reply = replies[replyIndex];
+    if (!reply) return;
+
+    setSendingIndex(replyIndex);
+
+    try {
+      const businessName = profiles.find((p) => p.id === selectedProfileId)?.name || "";
+      const res = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reply_text: reply.text,
+          customer_email: email,
+          subject,
+          business_name: businessName || bizType,
+          reply_id: null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.error === "email_limit_reached") {
+          setShowUpgrade(true);
+          toast.error("Email send limit reached for your plan.");
+          return;
+        }
+        throw new Error(data.error || "Failed to send");
+      }
+
+      setSentIndices((prev) => new Set(prev).add(replyIndex));
+      toast.success("Reply sent via email! ✉️");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send. Try again.");
+    } finally {
+      setSendingIndex(null);
+      setPendingSendIndex(null);
+      setShowEmailModal(false);
+    }
+  }
+
+  async function handleSendClick(index: number) {
+    if (customerEmail.trim()) {
+      // Generate a subject from the complaint
+      const defaultSubject = `Re: ${bizType} — regarding your recent message`;
+      await handleSendEmail(index, customerEmail.trim(), defaultSubject);
+    } else {
+      setPendingSendIndex(index);
+      setShowEmailModal(true);
+    }
+  }
+
   return (
     <>
       <Toaster position="top-center" />
@@ -112,6 +171,20 @@ export default function ReplyGenerator() {
           <p className={`text-xs text-right ${complaint.length < 20 && complaint.length > 0 ? "text-red-400" : "text-gray-400"}`}>
             {complaint.length} characters {complaint.length < 20 && complaint.length > 0 ? "(need 20+)" : ""}
           </p>
+        </div>
+
+        {/* Customer Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Customer email <span className="text-xs text-gray-400 font-normal">(optional — for sending replies)</span>
+          </label>
+          <input
+            type="email"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+            placeholder="angrycustomer@gmail.com"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          />
         </div>
 
         {/* Business type */}
@@ -202,8 +275,23 @@ export default function ReplyGenerator() {
               3 replies ready — click Copy on the one you want to send
             </p>
             {replies.map((reply, i) => (
-              <ReplyCard key={i} reply={reply} />
+              <ReplyCard
+                key={i}
+                reply={reply}
+                onSendClick={() => handleSendClick(i)}
+                sent={sentIndices.has(i)}
+                sending={sendingIndex === i}
+              />
             ))}
+            {showEmailModal && pendingSendIndex !== null && (
+              <EmailPromptModal
+                onClose={() => { setShowEmailModal(false); setPendingSendIndex(null); }}
+                onSend={async (email, subject) => {
+                  await handleSendEmail(pendingSendIndex, email, subject);
+                }}
+                defaultSubject={`Re: ${bizType} — regarding your recent message`}
+              />
+            )}
           </div>
         )}
       </div>

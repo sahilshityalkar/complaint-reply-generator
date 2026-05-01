@@ -6,8 +6,10 @@
 2. Run each .sql file **in order**:
    - 001_brand_profiles.sql
    - 002_reply_history_profile.sql
+   - 003_email_reply.sql
 3. Verify tables appear in Table Editor
 
 ## Notes
 - RLS is enabled on brand_profiles
-- profile_id on reply_history uses ON DELETE SET NULL (deleting a profile doesn't delete history)
+- profile_id on reply_history uses ON DELETE SET NULL
+- 003 adds email columns to reply_history (no new table needed)

@@ -18,6 +18,10 @@ interface HistoryItem {
   tone: string;
   business_type: string;
   replies: Reply[];
+  sent_via_email?: boolean;
+  customer_email?: string;
+  email_subject?: string;
+  sent_at?: string;
 }
 
 export default async function DashboardPage() {
@@ -118,9 +122,16 @@ export default async function DashboardPage() {
               >
                 {/* Meta */}
                 <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>
-                    {item.business_type} · {item.tone} tone
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>
+                      {item.business_type} · {item.tone} tone
+                    </span>
+                    {item.sent_via_email && (
+                      <span className="flex items-center gap-1 text-green-600 font-medium">
+                        ✉️ Sent {item.customer_email && `to ${item.customer_email}`}
+                      </span>
+                    )}
+                  </div>
                   <span>
                     {new Date(item.created_at).toLocaleDateString("en-IN", {
                       day: "numeric",
