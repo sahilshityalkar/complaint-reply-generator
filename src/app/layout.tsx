@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +35,11 @@ export default function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full flex flex-col" suppressHydrationWarning>
-          <Navbar />
-          {children}
+        <body className="min-h-screen flex" suppressHydrationWarning>
+          <Sidebar />
+          <main className="flex-1 flex flex-col">
+            {children}
+          </main>
         </body>
       </html>
     </ClerkProvider>
