@@ -9,6 +9,13 @@ interface UserOptions {
   last_language?: string;
   auto_reply_enabled?: boolean;
   auto_reply_business_hours?: boolean;
+  whatsapp?: {
+    provider: string;
+    api_key: string;
+    phone_number: string;
+    connected: boolean;
+    connected_at?: string;
+  };
 }
 
 function getKey(userId: string): string {
@@ -128,5 +135,32 @@ export async function saveAutoReplyPreference(
   const options = await getUserOptions(userId);
   options.auto_reply_enabled = enabled;
   options.auto_reply_business_hours = businessHours;
+  await saveUserOptions(userId, options);
+}
+
+export async function saveWhatsAppConfig(
+  userId: string,
+  config: {
+    api_key: string;
+    phone_number: string;
+    connected: boolean;
+  }
+): Promise<void> {
+  const options = await getUserOptions(userId);
+  options.whatsapp = {
+    provider: "wati",
+    api_key: config.api_key,
+    phone_number: config.phone_number,
+    connected: config.connected,
+    connected_at: config.connected ? new Date().toISOString() : undefined,
+  };
+  await saveUserOptions(userId, options);
+}
+
+export async function disconnectWhatsApp(
+  userId: string
+): Promise<void> {
+  const options = await getUserOptions(userId);
+  delete options.whatsapp;
   await saveUserOptions(userId, options);
 }

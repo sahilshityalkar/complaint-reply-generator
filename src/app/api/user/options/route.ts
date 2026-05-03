@@ -10,6 +10,8 @@ import {
   removeCustomLanguage,
   saveLanguagePreference,
   saveAutoReplyPreference,
+  saveWhatsAppConfig,
+  disconnectWhatsApp,
 } from "@/lib/user-options";
 
 export async function GET() {
@@ -74,6 +76,20 @@ export async function POST(req: Request) {
           value.enabled ?? false,
           value.business_hours ?? false
         );
+        return NextResponse.json({ success: true });
+      } else {
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      }
+    } else if (type === "whatsapp") {
+      if (action === "connect") {
+        await saveWhatsAppConfig(userId, {
+          api_key: value.api_key,
+          phone_number: value.phone_number,
+          connected: true,
+        });
+        return NextResponse.json({ success: true });
+      } else if (action === "disconnect") {
+        await disconnectWhatsApp(userId);
         return NextResponse.json({ success: true });
       } else {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });

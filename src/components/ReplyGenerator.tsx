@@ -8,6 +8,7 @@ import UsageBadge from "./UsageBadge";
 import UpgradeModal from "./UpgradeModal";
 import EmailPromptModal from "./EmailPromptModal";
 
+import WhatsAppConnect from "./WhatsAppConnect";
 // Default options (always shown)
 const DEFAULT_TONES = ["Empathetic", "Firm", "Apologetic", "Professional"];
 const DEFAULT_BIZ_TYPES = [
@@ -84,6 +85,14 @@ export default function ReplyGenerator() {
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyBusinessHours, setAutoReplyBusinessHours] = useState(false);
 
+  // WhatsApp state
+  const [whatsAppConfig, setWhatsAppConfig] = useState<{
+    provider: string;
+    phone_number: string;
+    connected: boolean;
+    connected_at?: string;
+  } | null>(null);
+
   // Fetch profiles and custom options on mount
   useEffect(() => {
     fetch("/api/voice/profiles")
@@ -111,6 +120,9 @@ export default function ReplyGenerator() {
         if (data.auto_reply_enabled !== undefined) {
           setAutoReplyEnabled(data.auto_reply_enabled);
           setAutoReplyBusinessHours(data.auto_reply_business_hours || false);
+        }
+        if (data.whatsapp) {
+          setWhatsAppConfig(data.whatsapp);
         }
       })
       .catch(() => {});
@@ -546,6 +558,14 @@ export default function ReplyGenerator() {
             )}
           </div>
         )}
+
+
+        {/* WhatsApp */}
+        <WhatsAppConnect
+          config={whatsAppConfig}
+          onConnected={setWhatsAppConfig}
+          onDisconnected={() => setWhatsAppConfig(null)}
+        />
 
         {/* Business type */}
         <div className="flex flex-col gap-2">
