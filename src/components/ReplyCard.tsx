@@ -24,8 +24,8 @@ export default function ReplyCard({ reply, onSendClick, onSaveTemplate, sent = f
 
   return (
     <div
-      className={`border rounded-xl p-5 bg-white shadow-sm flex flex-col gap-3 transition-all ${
-        sent ? "border-green-300 bg-green-50/40" : "border-gray-200"
+      className={`border rounded-xl p-5 bg-white dark:bg-gray-900 shadow-sm flex flex-col gap-3 transition-all ${
+        sent ? "border-green-300 bg-green-50/40 dark:bg-green-900/20" : "border-gray-200 dark:border-gray-700"
       }`}
     >
       <div className="flex items-center justify-between">

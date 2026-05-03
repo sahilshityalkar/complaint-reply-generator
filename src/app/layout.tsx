@@ -34,7 +34,22 @@ export default function RootLayout({
       <html
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+try {
+  var t = localStorage.getItem("replyai-theme");
+  if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme:dark)").matches)) {
+    document.documentElement.classList.add("dark");
+  }
+} catch(e) {}
+              `.trim(),
+            }}
+          />
+        </head>
         <body className="min-h-screen flex" suppressHydrationWarning>
           <Sidebar />
           <main className="flex-1 flex flex-col">

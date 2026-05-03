@@ -45,7 +45,7 @@ export default function SearchBar({ availableTones, availableBizTypes }: SearchB
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           placeholder="Search past complaints..."
-          className="w-full px-4 py-2.5 pl-10 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+          className="w-full px-4 py-2.5 pl-10 rounded-xl border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
         />
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
           🔍
@@ -57,7 +57,7 @@ export default function SearchBar({ availableTones, availableBizTypes }: SearchB
         <select
           value={tone}
           onChange={(e) => setTone(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-black/10"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-black/10"
         >
           <option value="">All tones</option>
           {availableTones.map((t) => (
@@ -70,7 +70,7 @@ export default function SearchBar({ availableTones, availableBizTypes }: SearchB
         <select
           value={biz}
           onChange={(e) => setBiz(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-black/10"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-black/10"
         >
           <option value="">All business types</option>
           {availableBizTypes.map((b) => (

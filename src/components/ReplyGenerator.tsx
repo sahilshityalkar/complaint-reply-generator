@@ -435,7 +435,7 @@ export default function ReplyGenerator() {
 
         {/* Complaint input */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Paste the customer complaint
           </label>
           <textarea
@@ -443,7 +443,7 @@ export default function ReplyGenerator() {
             onChange={(e) => setComplaint(e.target.value)}
             placeholder="e.g. I ordered 3 weeks ago and still haven't received my package. This is completely unacceptable and I want a refund immediately!"
             rows={5}
-            className="w-full border border-gray-200 rounded-xl p-4 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-black/10"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
           />
           <p className={`text-xs text-right ${complaint.length < 20 && complaint.length > 0 ? "text-red-400" : "text-gray-400"}`}>
             {complaint.length} characters {complaint.length < 20 && complaint.length > 0 ? "(need 20+)" : ""}
@@ -460,13 +460,13 @@ export default function ReplyGenerator() {
             value={customerEmail}
             onChange={(e) => setCustomerEmail(e.target.value)}
             placeholder="angrycustomer@gmail.com"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
           />
         </div>
 
         {/* Business type */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Business type</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Business type</label>
           <div className="flex flex-wrap gap-2">
             {DEFAULT_BIZ_TYPES.map((b) => (
               <button
@@ -475,7 +475,7 @@ export default function ReplyGenerator() {
                 className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                   bizType === b
                     ? "bg-black text-white border-black"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
                 {b}
@@ -485,7 +485,7 @@ export default function ReplyGenerator() {
           {/* Custom business types */}
           {customBizTypes.length > 0 && (
             <>
-              <div className="border-t border-gray-100 my-1" />
+              <div className="border-t border-gray-100 dark:border-gray-800 my-1" />
               <div className="flex flex-wrap gap-2">
                 {customBizTypes.map((b) => (
                   <div key={b} className="flex items-center gap-1">
@@ -494,7 +494,7 @@ export default function ReplyGenerator() {
                       className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                         bizType === b
                           ? "bg-black text-white border-black"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                     >
                       {b}
@@ -519,7 +519,7 @@ export default function ReplyGenerator() {
                 value={newBizTypeInput}
                 onChange={(e) => setNewBizTypeInput(e.target.value)}
                 placeholder="e.g. Consulting Agency"
-                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
                 onKeyDown={(e) => e.key === "Enter" && handleAddBizType()}
                 autoFocus
               />
@@ -548,7 +548,7 @@ export default function ReplyGenerator() {
 
         {/* Tone selector */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Your preferred tone</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Your preferred tone</label>
           <div className="flex flex-wrap gap-2">
             {DEFAULT_TONES.map((t) => (
               <button
@@ -557,7 +557,7 @@ export default function ReplyGenerator() {
                 className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                   tone === t
                     ? "bg-black text-white border-black"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
                 {t}
@@ -567,7 +567,7 @@ export default function ReplyGenerator() {
           {/* Custom tones */}
           {customTones.length > 0 && (
             <>
-              <div className="border-t border-gray-100 my-1" />
+              <div              className="border-t border-gray-100 dark:border-gray-800 my-1"/>
               <div className="flex flex-wrap gap-2">
                 {customTones.map((t) => (
                   <div key={t} className="flex items-center gap-1">
@@ -576,7 +576,7 @@ export default function ReplyGenerator() {
                       className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                         tone === t
                           ? "bg-black text-white border-black"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                     >
                       {t}
@@ -601,7 +601,7 @@ export default function ReplyGenerator() {
                 value={newToneInput}
                 onChange={(e) => setNewToneInput(e.target.value)}
                 placeholder="e.g. Warm & Humorous"
-                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
                 onKeyDown={(e) => e.key === "Enter" && handleAddTone()}
                 autoFocus
               />
@@ -630,7 +630,7 @@ export default function ReplyGenerator() {
 
         {/* Language selector */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Reply language
             {language === "auto" && (
               <span className="ml-2 text-xs text-gray-400 font-normal">
@@ -646,7 +646,7 @@ export default function ReplyGenerator() {
                 className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                   language === lang.value
                     ? "bg-black text-white border-black"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
                 {lang.label}
@@ -656,7 +656,7 @@ export default function ReplyGenerator() {
           {/* Custom languages */}
           {customLanguages.length > 0 && (
             <>
-              <div className="border-t border-gray-100 my-1" />
+              <div              className="border-t border-gray-100 dark:border-gray-800 my-1"/>
               <div className="flex flex-wrap gap-2">
                 {customLanguages.map((lang) => (
                   <div key={lang} className="flex items-center gap-1">
@@ -665,7 +665,7 @@ export default function ReplyGenerator() {
                       className={`px-4 py-2 rounded-full text-sm border transition-colors ${
                         language === lang
                           ? "bg-black text-white border-black"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                     >
                       {lang}
@@ -690,7 +690,7 @@ export default function ReplyGenerator() {
                 value={newLanguageInput}
                 onChange={(e) => setNewLanguageInput(e.target.value)}
                 placeholder="e.g. Punjabi"
-                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
                 onKeyDown={(e) => e.key === "Enter" && handleAddLanguage()}
                 autoFocus
               />
@@ -719,7 +719,7 @@ export default function ReplyGenerator() {
 
         {/* Reply length */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Reply length</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Reply length</label>
           <div className="flex gap-1.5">
             {REPLY_LENGTHS.map((rl) => (
               <button
@@ -728,7 +728,7 @@ export default function ReplyGenerator() {
                 className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${
                   replyLength === rl.value
                     ? "bg-black text-white border-black"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
                 <span className="font-medium">{rl.label}</span>
@@ -747,7 +747,7 @@ export default function ReplyGenerator() {
             <select
               value={selectedProfileId}
               onChange={(e) => setSelectedProfileId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
             >
               <option value="">No brand voice (generic replies)</option>
               {profiles.map((p) => (
@@ -827,7 +827,7 @@ export default function ReplyGenerator() {
         {/* Results */}
         {replies.length > 0 && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
               3 replies ready — click Copy on the one you want to send
             </p>
             {replies.map((reply, i) => (
@@ -839,7 +839,7 @@ export default function ReplyGenerator() {
                       value={templateName}
                       onChange={(e) => setTemplateName(e.target.value)}
                       placeholder="Template name (e.g. Late delivery apology)"
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
                       onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate(i)}
                       autoFocus
                     />

@@ -81,11 +81,11 @@ export default async function DashboardPage({
   const hasActiveFilters = !!(q || toneFilter || bizFilter);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4">
       <div className="max-w-2xl mx-auto flex flex-col gap-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
           <Link
             href="/app"
             className="text-sm px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
@@ -95,9 +95,9 @@ export default async function DashboardPage({
         </div>
 
         {/* Usage card */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">This month</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">This month</h2>
             <span
               className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${
                 plan === "pro"
@@ -154,7 +154,7 @@ export default async function DashboardPage({
 
           {/* Results state */}
           {!history || history.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-400 text-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-10 text-center text-gray-400 dark:text-gray-500 text-sm">
               {hasActiveFilters ? (
                 <>
                   No results for &ldquo;{q}&rdquo;
@@ -184,10 +184,10 @@ export default async function DashboardPage({
                 {(history as HistoryItem[]).map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4"
+                    className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 flex flex-col gap-4"
                   >
                     {/* Meta */}
-                    <div className="flex items-center justify-between text-xs text-gray-400">
+                    <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
                       <div className="flex items-center gap-2">
                         <span>
                           {item.business_type} · {item.tone} tone
@@ -256,9 +256,9 @@ export default async function DashboardPage({
 
 function ReplyRow({ reply }: { reply: Reply }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-1">
-      <span className="text-xs font-semibold text-gray-400">{reply.label}</span>
-      <p className="text-sm text-gray-700 leading-relaxed">{reply.text}</p>
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-400 dark:text-gray-500">{reply.label}</span>
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{reply.text}</p>
     </div>
   );
 }
