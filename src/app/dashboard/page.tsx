@@ -4,6 +4,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getUser, getUsage } from "@/lib/usage";
 import { PLAN_LIMITS } from "@/lib/plans";
+import SearchBar from "@/components/SearchBar";
+import Pagination from "@/components/Pagination";
 
 interface Reply {
   label: string;
@@ -24,30 +26,63 @@ interface HistoryItem {
   sent_at?: string;
 }
 
-export default async function DashboardPage() {
+const PAGE_SIZE = 20;
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; tone?: string; biz?: string; page?: string }>;
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const [user, usage, { data: history }] = await Promise.all([
+  const params = await searchParams;
+  const q = params.q?.trim() || "";
+  const toneFilter = params.tone || "";
+  const bizFilter = params.biz || "";
+  const currentPage = Math.max(1, parseInt(params.page || "1"));
+  const offset = (currentPage - 1) * PAGE_SIZE;
+
+  const [user, usage] = await Promise.all([
     getUser(userId),
     getUsage(userId),
-    supabase
-      .from("reply_history")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20),
   ]);
+
+  // Build filtered query
+  let query = supabase
+    .from("reply_history")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId);
+
+  if (q) query = query.ilike("complaint", `%${q}%`);
+  if (toneFilter) query = query.eq("tone", toneFilter);
+  if (bizFilter) query = query.eq("business_type", bizFilter);
+
+  const { data: history, count: totalCount } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1);
+
+  // Get unique tones and business types for filter dropdowns
+  const { data: allFilters } = await supabase
+    .from("reply_history")
+    .select("tone, business_type")
+    .eq("user_id", userId);
+
+  const uniqueTones = [...new Set(allFilters?.map((f) => f.tone) || [])].sort();
+  const uniqueBizTypes = [
+    ...new Set(allFilters?.map((f) => f.business_type) || []),
+  ].sort();
 
   const plan = user?.plan ?? "free";
   const count = usage?.reply_count ?? 0;
   const limit = PLAN_LIMITS[plan];
   const isUnlimited = limit === -1;
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / PAGE_SIZE));
+  const hasActiveFilters = !!(q || toneFilter || bizFilter);
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto flex flex-col gap-8">
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -63,13 +98,15 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">This month</h2>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${
-              plan === "pro"
-                ? "bg-black text-white"
-                : plan === "starter"
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-100 text-gray-600"
-            }`}>
+            <span
+              className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase ${
+                plan === "pro"
+                  ? "bg-black text-white"
+                  : plan === "starter"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-gray-100 text-gray-600"
+              }`}
+            >
               {plan}
             </span>
           </div>
@@ -77,7 +114,10 @@ export default async function DashboardPage() {
             <p className="text-4xl font-bold text-gray-900">
               {isUnlimited ? "∞" : count}
               {!isUnlimited && (
-                <span className="text-lg font-normal text-gray-400"> / {limit} replies</span>
+                <span className="text-lg font-normal text-gray-400">
+                  {" "}
+                  / {limit} replies
+                </span>
               )}
             </p>
             <p className="text-sm text-gray-500 mt-1">
@@ -90,7 +130,11 @@ export default async function DashboardPage() {
             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${
-                  count >= limit ? "bg-red-500" : count / limit >= 0.7 ? "bg-yellow-400" : "bg-black"
+                  count >= limit
+                    ? "bg-red-500"
+                    : count / limit >= 0.7
+                      ? "bg-yellow-400"
+                      : "bg-black"
                 }`}
                 style={{ width: `${Math.min((count / limit) * 100, 100)}%` }}
               />
@@ -100,63 +144,109 @@ export default async function DashboardPage() {
 
         {/* Reply history */}
         <div className="flex flex-col gap-4">
-          <h2 className="font-semibold text-gray-900">
-            Reply history
-            <span className="ml-2 text-sm font-normal text-gray-400">
-              last {history?.length ?? 0} generations
-            </span>
-          </h2>
+          <h2 className="font-semibold text-gray-900">Reply history</h2>
 
+          {/* Search bar */}
+          <SearchBar
+            availableTones={uniqueTones}
+            availableBizTypes={uniqueBizTypes}
+          />
+
+          {/* Results state */}
           {!history || history.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-400 text-sm">
-              No history yet.{" "}
-              <Link href="/app" className="text-black underline">
-                Generate your first reply
-              </Link>
+              {hasActiveFilters ? (
+                <>
+                  No results for &ldquo;{q}&rdquo;
+                  {toneFilter && <> with tone &ldquo;{toneFilter}&rdquo;</>}
+                  {bizFilter && <> in &ldquo;{bizFilter}&rdquo;</>}.
+                  <br />
+                  <Link
+                    href="/dashboard"
+                    className="text-black underline mt-1 inline-block"
+                  >
+                    Clear search and try again
+                  </Link>
+                </>
+              ) : (
+                <>
+                  No history yet.{" "}
+                  <Link href="/app" className="text-black underline">
+                    Generate your first reply
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
-            (history as HistoryItem[]).map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4"
-              >
-                {/* Meta */}
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {item.business_type} · {item.tone} tone
-                    </span>
-                    {item.sent_via_email && (
-                      <span className="flex items-center gap-1 text-green-600 font-medium">
-                        ✉️ Sent {item.customer_email && `to ${item.customer_email}`}
+            <>
+              {/* Result list */}
+              <div className="flex flex-col gap-4">
+                {(history as HistoryItem[]).map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4"
+                  >
+                    {/* Meta */}
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {item.business_type} · {item.tone} tone
+                        </span>
+                        {item.sent_via_email && (
+                          <span className="flex items-center gap-1 text-green-600 font-medium">
+                            ✉️ Sent{" "}
+                            {item.customer_email && `to ${item.customer_email}`}
+                          </span>
+                        )}
+                      </div>
+                      <span>
+                        {new Date(item.created_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
-                    )}
+                    </div>
+
+                    {/* Complaint — highlight match */}
+                    <p className="text-sm text-gray-500 italic border-l-2 border-gray-200 pl-3">
+                      &ldquo;
+                      {q && item.complaint.toLowerCase().includes(q.toLowerCase())
+                        ? (() => {
+                            const highlighted = highlightMatch(item.complaint, q);
+                            return (
+                              <span
+                                dangerouslySetInnerHTML={{
+                                  __html: highlighted,
+                                }}
+                              />
+                            );
+                          })()
+                        : item.complaint.length > 120
+                          ? item.complaint.slice(0, 120) + "…"
+                          : item.complaint}
+                      &rdquo;
+                    </p>
+
+                    {/* Replies */}
+                    <div className="flex flex-col gap-2">
+                      {item.replies.map((reply, i) => (
+                        <ReplyRow key={i} reply={reply} />
+                      ))}
+                    </div>
                   </div>
-                  <span>
-                    {new Date(item.created_at).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-
-                {/* Complaint */}
-                <p className="text-sm text-gray-500 italic border-l-2 border-gray-200 pl-3">
-                  &ldquo;{item.complaint.length > 120
-                    ? item.complaint.slice(0, 120) + "…"
-                    : item.complaint}&rdquo;
-                </p>
-
-                {/* Replies */}
-                <div className="flex flex-col gap-2">
-                  {item.replies.map((reply, i) => (
-                    <ReplyRow key={i} reply={reply} />
-                  ))}
-                </div>
+                ))}
               </div>
-            ))
+
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalResults={totalCount ?? 0}
+                searchLabel={q || undefined}
+              />
+            </>
           )}
         </div>
       </div>
@@ -171,4 +261,28 @@ function ReplyRow({ reply }: { reply: Reply }) {
       <p className="text-sm text-gray-700 leading-relaxed">{reply.text}</p>
     </div>
   );
+}
+
+/** Highlight search term in complaint text and show context around it */
+function highlightMatch(text: string, query: string): string {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+
+  // Find the first occurrence index
+  const match = text.toLowerCase().indexOf(query.toLowerCase());
+  if (match > -1) {
+    // Trim context around the match
+    const start = Math.max(0, match - 60);
+    const end = Math.min(text.length, match + query.length + 80);
+    const snippet = text.slice(start, end);
+    const prefix = start > 0 ? "…" : "";
+    const suffix = end < text.length ? "…" : "";
+    const highlighted = snippet.replace(
+      regex,
+      (m: string) => `<mark class="bg-yellow-200 rounded-sm px-0.5">${m}</mark>`
+    );
+    return `${prefix}${highlighted}${suffix}`;
+  }
+
+  return text.length > 120 ? text.slice(0, 120) + "…" : text;
 }
