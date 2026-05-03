@@ -276,37 +276,37 @@ export const LANGUAGE_CONFIG: Record<string, { display: string; instruction: str
   auto: {
     display: "Auto",
     instruction:
-      "Detect the complaint's language automatically. If it's Hinglish (Hindi mixed with English words, written in Latin/Roman script like 'bhaiya order kab aayega'), reply in Hinglish. If it's pure Hindi in Devanagari script (जैसे यह वाक्य), reply in Hindi. If it's English, reply in English. If it's another Indian language (Tamil, Marathi, Bengali, etc.), reply in that language. Match the exact script and language of the complaint.",
+      "Detect the complaint's language automatically. If it's Hinglish (Hindi mixed with English words, written in Latin/Roman script like 'bhaiya order kab aayega'), reply in Hinglish matching the requested tone. If it's pure Hindi in Devanagari script (जैसे यह वाक्य), reply in Hindi matching the requested tone. If it's English, reply in English matching the requested tone. If it's another Indian language (Tamil, Marathi, Bengali, etc.), reply in that language matching the requested tone. Match the exact script and language of the complaint.",
   },
   hinglish: {
     display: "Hinglish",
     instruction:
-      "Reply in Hinglish — a mix of Hindi and English words written in Latin/Roman script. Use conversational, natural Hinglish. Do NOT use Devanagari script. Do NOT reply in pure English or pure Hindi.",
+      "Reply in Hinglish — a mix of Hindi and English words written in Latin/Roman script. Match the requested tone (professional/firm/empathetic/apologetic) in Hinglish. Do NOT use Devanagari script. Do NOT reply in pure English or pure Hindi.",
   },
   hindi: {
     display: "Hindi",
     instruction:
-      "Reply in pure Hindi using Devanagari script (हिन्दी). Use formal, respectful Hindi. Do NOT use English words unless they are proper nouns. Do NOT use Latin/Roman script.",
+      "Reply in pure Hindi using Devanagari script (हिन्दी). Match the requested tone in formal, respectable Hindi. Do NOT use English words unless they are proper nouns. Do NOT use Latin/Roman script.",
   },
   english: {
     display: "English",
     instruction:
-      "Reply in English. Professional business English.",
+      "Reply in English. Match the requested tone with professional business English.",
   },
   tamil: {
     display: "Tamil",
     instruction:
-      "Reply in Tamil (தமிழ்) using Tamil script. Use respectful, formal Tamil suitable for business communication.",
+      "Reply in Tamil (தமிழ்) using Tamil script. Match the requested tone in respectful, formal Tamil suitable for business communication.",
   },
   marathi: {
     display: "Marathi",
     instruction:
-      "Reply in Marathi (मराठी) using Devanagari script. Use respectful, professional Marathi.",
+      "Reply in Marathi (मराठी) using Devanagari script. Match the requested tone in respectful, professional Marathi.",
   },
   bengali: {
     display: "Bengali",
     instruction:
-      "Reply in Bengali (বাংলা) using Bengali script. Use respectful, professional Bengali suitable for business communication.",
+      "Reply in Bengali (বাংলা) using Bengali script. Match the requested tone in respectful, professional Bengali suitable for business communication.",
   },
 };
 
@@ -403,10 +403,17 @@ ${
       display: language,
       instruction: `Reply in ${language}. Match the tone and formality appropriate for that language.`,
     };
+    const toneBasedFormality =
+      tone === "Professional" || tone === "Firm"
+        ? "- Use formal, respectful language. Do NOT use casual terms like 'bhaiya' or 'bhai'."
+        : tone === "Apologetic"
+          ? "- Use warm, sincere language. Maintain professional dignity."
+          : "- Use empathetic, caring language while staying professional.";
     return `LANGUAGE INSTRUCTIONS (CRITICAL):
 ${lang.instruction}
 - Use the correct script (Devanagari/Latin/Tamil/Bengali/etc.) for the reply language.
-- Match the formality level appropriate for the language (formal Hindi ≠ casual Hinglish).`;
+- The user has selected "${tone}" tone. ALL replies must match this tone's formality level.
+${toneBasedFormality}`;
   })()
 }
 

@@ -56,10 +56,15 @@ export async function POST(req: Request) {
   });
 
   try {
+    // Non-English languages need more tokens (Tamil, Bengali scripts are wider)
+    const isMultilingual = language && language !== "auto" && language !== "english";
+    const maxTokens = isMultilingual ? 1536 : (language === "auto" ? 2048 : 1024);
+
     const completion = await groq.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
+      max_tokens: maxTokens,
     });
 
     const raw = completion.choices[0].message.content ?? "";
