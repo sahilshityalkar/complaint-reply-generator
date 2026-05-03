@@ -4,6 +4,7 @@ import { sendReply } from "@/lib/email";
 import { getUser } from "@/lib/usage";
 import { isEmailUnderLimit } from "@/lib/plans";
 import { supabase } from "@/lib/supabase";
+import { recordOutgoingEmail } from "@/lib/inbound-email";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -81,6 +82,27 @@ export async function POST(req: Request) {
       })
       .eq("id", reply_id)
       .eq("user_id", userId);
+  }
+
+  // Record conversation for two-way email tracking
+  try {
+    // Get the original complaint and tone from reply_history
+    const { data: historyEntry } = await supabase
+      .from("reply_history")
+      .select("complaint, tone, business_type")
+      .eq("id", reply_id || "")
+      .single();
+
+    await recordOutgoingEmail(
+      userId,
+      customer_email,
+      historyEntry?.complaint || "",
+      historyEntry?.tone || "",
+      historyEntry?.business_type || "",
+      reply_text
+    );
+  } catch {
+    // Fire and forget — don't block the response
   }
 
   return NextResponse.json({ success: true, email_id: result.email_id });

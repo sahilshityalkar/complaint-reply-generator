@@ -9,6 +9,7 @@ import {
   addCustomLanguage,
   removeCustomLanguage,
   saveLanguagePreference,
+  saveAutoReplyPreference,
 } from "@/lib/user-options";
 
 export async function GET() {
@@ -66,6 +67,13 @@ export async function POST(req: Request) {
     } else if (type === "preference") {
       if (action === "set-last-language") {
         await saveLanguagePreference(userId, value);
+        return NextResponse.json({ success: true });
+      } else if (action === "set-auto-reply") {
+        await saveAutoReplyPreference(
+          userId,
+          value.enabled ?? false,
+          value.business_hours ?? false
+        );
         return NextResponse.json({ success: true });
       } else {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });

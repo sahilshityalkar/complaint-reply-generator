@@ -80,6 +80,10 @@ export default function ReplyGenerator() {
   const [savingTemplateIndex, setSavingTemplateIndex] = useState<number | null>(null);
   const [templateName, setTemplateName] = useState("");
 
+  // Auto-reply state
+  const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
+  const [autoReplyBusinessHours, setAutoReplyBusinessHours] = useState(false);
+
   // Fetch profiles and custom options on mount
   useEffect(() => {
     fetch("/api/voice/profiles")
@@ -102,6 +106,11 @@ export default function ReplyGenerator() {
         // Restore last used language if available
         if (data.last_language) {
           setLanguage(data.last_language);
+        }
+        // Restore auto-reply preferences
+        if (data.auto_reply_enabled !== undefined) {
+          setAutoReplyEnabled(data.auto_reply_enabled);
+          setAutoReplyBusinessHours(data.auto_reply_business_hours || false);
         }
       })
       .catch(() => {});
@@ -132,6 +141,37 @@ export default function ReplyGenerator() {
     }, 1000); // 1-second debounce — don't save on rapid clicks
     return () => clearTimeout(timer);
   }, [language]);
+
+  // Save auto-reply preference when it changes
+  async function handleToggleAutoReply(enabled: boolean) {
+    setAutoReplyEnabled(enabled);
+    try {
+      await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "preference",
+          action: "set-auto-reply",
+          value: { enabled, business_hours: autoReplyBusinessHours },
+        }),
+      });
+    } catch {}
+  }
+
+  async function handleToggleBusinessHours(checked: boolean) {
+    setAutoReplyBusinessHours(checked);
+    try {
+      await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "preference",
+          action: "set-auto-reply",
+          value: { enabled: autoReplyEnabled, business_hours: checked },
+        }),
+      });
+    } catch {}
+  }
 
   async function handleGenerate() {
     if (complaint.trim().length < 20) {
@@ -463,6 +503,49 @@ export default function ReplyGenerator() {
             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
           />
         </div>
+
+        {/* Auto-reply toggle */}
+        {customerEmail.trim() && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Auto-reply
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  When on: customer replies are auto-generated &amp; sent without your input
+                </p>
+              </div>
+              <button
+                onClick={() => handleToggleAutoReply(!autoReplyEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  autoReplyEnabled
+                    ? "bg-black dark:bg-white"
+                    : "bg-gray-200 dark:bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full transition-transform bg-white dark:bg-gray-900 ${
+                    autoReplyEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            {autoReplyEnabled && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoReplyBusinessHours}
+                  onChange={(e) => handleToggleBusinessHours(e.target.checked)}
+                  className="rounded border-gray-300 dark:border-gray-600 text-black focus:ring-black"
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Business hours only (9am–6pm IST)
+                </span>
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Business type */}
         <div className="flex flex-col gap-2">

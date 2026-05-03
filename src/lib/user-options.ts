@@ -7,6 +7,8 @@ interface UserOptions {
   custom_biz_types: string[];
   custom_languages: string[];
   last_language?: string;
+  auto_reply_enabled?: boolean;
+  auto_reply_business_hours?: boolean;
 }
 
 function getKey(userId: string): string {
@@ -115,5 +117,16 @@ export async function saveLanguagePreference(
 ): Promise<void> {
   const options = await getUserOptions(userId);
   options.last_language = language;
+  await saveUserOptions(userId, options);
+}
+
+export async function saveAutoReplyPreference(
+  userId: string,
+  enabled: boolean,
+  businessHours: boolean
+): Promise<void> {
+  const options = await getUserOptions(userId);
+  options.auto_reply_enabled = enabled;
+  options.auto_reply_business_hours = businessHours;
   await saveUserOptions(userId, options);
 }

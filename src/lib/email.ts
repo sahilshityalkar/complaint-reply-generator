@@ -53,6 +53,7 @@ export async function sendReply(params: SendReplyParams): Promise<SendReplyResul
       subject,
       text: body,
       html: `<p style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#333;">${htmlBody}</p>`,
+      replyTo: FROM_DOMAIN,
     });
 
     if (error) {
