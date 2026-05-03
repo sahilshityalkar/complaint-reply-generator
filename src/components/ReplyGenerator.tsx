@@ -92,9 +92,32 @@ export default function ReplyGenerator() {
         setCustomTones(data.custom_tones || []);
         setCustomBizTypes(data.custom_biz_types || []);
         setCustomLanguages(data.custom_languages || []);
+        // Restore last used language if available
+        if (data.last_language) {
+          setLanguage(data.last_language);
+        }
       })
       .catch(() => {});
   }, []);
+
+  // Save language preference when it changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Skip saving if still "auto" (default) — only save explicit selections
+      if (language !== "auto") {
+        fetch("/api/user/options", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "preference",
+            action: "set-last-language",
+            value: language,
+          }),
+        }).catch(() => {});
+      }
+    }, 1000); // 1-second debounce — don't save on rapid clicks
+    return () => clearTimeout(timer);
+  }, [language]);
 
   async function handleGenerate() {
     if (complaint.trim().length < 20) {

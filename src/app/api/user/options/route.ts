@@ -8,6 +8,7 @@ import {
   removeCustomBizType,
   addCustomLanguage,
   removeCustomLanguage,
+  saveLanguagePreference,
 } from "@/lib/user-options";
 
 export async function GET() {
@@ -59,6 +60,13 @@ export async function POST(req: Request) {
         result = await addCustomLanguage(userId, value);
       } else if (action === "remove") {
         result = await removeCustomLanguage(userId, value);
+      } else {
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      }
+    } else if (type === "preference") {
+      if (action === "set-last-language") {
+        await saveLanguagePreference(userId, value);
+        return NextResponse.json({ success: true });
       } else {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
       }

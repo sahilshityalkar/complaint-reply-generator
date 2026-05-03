@@ -6,6 +6,7 @@ interface UserOptions {
   custom_tones: string[];
   custom_biz_types: string[];
   custom_languages: string[];
+  last_language?: string;
 }
 
 function getKey(userId: string): string {
@@ -106,4 +107,13 @@ export async function removeCustomLanguage(
   options.custom_languages = options.custom_languages.filter((l) => l !== language);
   await saveUserOptions(userId, options);
   return options.custom_languages;
+}
+
+export async function saveLanguagePreference(
+  userId: string,
+  language: string
+): Promise<void> {
+  const options = await getUserOptions(userId);
+  options.last_language = language;
+  await saveUserOptions(userId, options);
 }

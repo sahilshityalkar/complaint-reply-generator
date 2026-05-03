@@ -276,7 +276,7 @@ export const LANGUAGE_CONFIG: Record<string, { display: string; instruction: str
   auto: {
     display: "Auto",
     instruction:
-      "Detect the complaint's language automatically. If it's Hinglish (Hindi mixed with English words, written in Latin/Roman script like 'bhaiya order kab aayega'), reply in Hinglish matching the requested tone. If it's pure Hindi in Devanagari script (जैसे यह वाक्य), reply in Hindi matching the requested tone. If it's English, reply in English matching the requested tone. If it's another Indian language (Tamil, Marathi, Bengali, etc.), reply in that language matching the requested tone. Match the exact script and language of the complaint.",
+      "Detect the complaint's language automatically. If it's Hinglish (Hindi mixed with English words, written in Latin/Roman script like 'bhaiya order kab aayega'), reply in Hinglish matching the requested tone. If it's pure Hindi in Devanagari script (जैसे यह वाक्य), reply in Hindi matching the requested tone. If it's English, reply in English matching the requested tone. If it's another Indian language (Tamil, Marathi, Bengali, Telugu, etc.) in native script OR written in Latin script (Tanglish, Benglish, etc.), reply in that language matching the requested tone. Match the exact script and language of the complaint.",
   },
   hinglish: {
     display: "Hinglish",
@@ -413,7 +413,11 @@ ${
 ${lang.instruction}
 - Use the correct script (Devanagari/Latin/Tamil/Bengali/etc.) for the reply language.
 - The user has selected "${tone}" tone. ALL replies must match this tone's formality level.
-${toneBasedFormality}`;
+${toneBasedFormality}${
+      profile?.voice_dna
+        ? `\n- Apply the brand voice of ${profile.business_name} in this language. Keep their personality, warmth, and style.`
+        : ""
+    }`;
   })()
 }
 
