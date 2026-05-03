@@ -73,6 +73,13 @@ export default function ReplyGenerator() {
   const [newLanguageInput, setNewLanguageInput] = useState("");
   const [addingLanguage, setAddingLanguage] = useState(false);
 
+  // Templates state
+  const [templates, setTemplates] = useState<
+    Array<{ id: string; name: string; reply_text: string; tone: string; biz_type: string; created_at: string }>
+  >([]);
+  const [savingTemplateIndex, setSavingTemplateIndex] = useState<number | null>(null);
+  const [templateName, setTemplateName] = useState("");
+
   // Fetch profiles and custom options on mount
   useEffect(() => {
     fetch("/api/voice/profiles")
@@ -96,6 +103,13 @@ export default function ReplyGenerator() {
         if (data.last_language) {
           setLanguage(data.last_language);
         }
+      })
+      .catch(() => {});
+
+    fetch("/api/user/templates")
+      .then((res) => res.json())
+      .then((data) => {
+        setTemplates(data.templates || []);
       })
       .catch(() => {});
   }, []);
@@ -356,6 +370,59 @@ export default function ReplyGenerator() {
     } catch {
       toast.error("Failed to remove language.");
     }
+  }
+
+  // Template handlers
+  async function handleSaveTemplate(index: number) {
+    const reply = replies[index];
+    if (!reply) return;
+    const name = templateName.trim() || reply.label;
+    try {
+      const res = await fetch("/api/user/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add",
+          value: {
+            name,
+            reply_text: reply.text,
+            tone: reply.tone,
+            biz_type: bizType,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(data.templates);
+        setSavingTemplateIndex(null);
+        setTemplateName("");
+        toast.success(`Saved template: "${name}"`);
+      }
+    } catch {
+      toast.error("Failed to save template.");
+    }
+  }
+
+  async function handleDeleteTemplate(templateId: string) {
+    try {
+      const res = await fetch("/api/user/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", value: { id: templateId } }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(data.templates);
+        toast("Template deleted");
+      }
+    } catch {
+      toast.error("Failed to delete template.");
+    }
+  }
+
+  async function handleUseTemplate(text: string) {
+    await navigator.clipboard.writeText(text);
+    toast.success("Template copied to clipboard!");
   }
 
   return (
@@ -712,6 +779,51 @@ export default function ReplyGenerator() {
           {loading ? "Generating..." : "Generate 3 replies"}
         </button>
 
+        {/* Saved Templates */}
+        {templates.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <details className="group">
+              <summary className="text-sm font-medium text-gray-500 cursor-pointer hover:text-gray-700 transition-colors list-none flex items-center gap-2">
+                <span className="text-xs transition-transform group-open:rotate-90">▶</span>
+                Saved Templates ({templates.length})
+              </summary>
+              <div className="flex flex-col gap-2 mt-3">
+                {templates.map((t) => (
+                  <div
+                    key={t.id}
+                    className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-2 hover:border-gray-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUseTemplate(t.reply_text)}
+                          className="text-xs px-3 py-1 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(t.id)}
+                          className="text-xs px-2 py-1 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                          title="Delete template"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {t.tone && `${t.tone} tone`}{t.tone && t.biz_type ? " · " : ""}{t.biz_type || ""}
+                    </p>
+                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                      {t.reply_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
+
         {/* Results */}
         {replies.length > 0 && (
           <div className="flex flex-col gap-4">
@@ -719,13 +831,41 @@ export default function ReplyGenerator() {
               3 replies ready — click Copy on the one you want to send
             </p>
             {replies.map((reply, i) => (
-              <ReplyCard
-                key={i}
-                reply={reply}
-                onSendClick={() => handleSendClick(i)}
-                sent={sentIndices.has(i)}
-                sending={sendingIndex === i}
-              />
+              <div key={i}>
+                {savingTemplateIndex === i && (
+                  <div className="flex gap-2 items-center mb-2 bg-gray-50 rounded-xl p-3">
+                    <input
+                      type="text"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="Template name (e.g. Late delivery apology)"
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                      onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate(i)}
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleSaveTemplate(i)}
+                      className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-medium"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => { setSavingTemplateIndex(null); setTemplateName(""); }}
+                      className="px-3 py-1.5 rounded-lg text-gray-500 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                <ReplyCard
+                  key={i}
+                  reply={reply}
+                  onSendClick={() => handleSendClick(i)}
+                  onSaveTemplate={() => { setTemplateName(reply.label); setSavingTemplateIndex(i); }}
+                  sent={sentIndices.has(i)}
+                  sending={sendingIndex === i}
+                />
+              </div>
             ))}
             {showEmailModal && pendingSendIndex !== null && (
               <EmailPromptModal
