@@ -6,6 +6,7 @@ import { getUser, getUsage } from "@/lib/usage";
 import { PLAN_LIMITS } from "@/lib/plans";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
+import { StatsSection } from "@/components/StatsSection";
 
 interface Reply {
   label: string;
@@ -65,7 +66,7 @@ export default async function DashboardPage({
   // Get unique tones and business types for filter dropdowns
   const { data: allFilters } = await supabase
     .from("reply_history")
-    .select("tone, business_type")
+    .select("tone, business_type, created_at")
     .eq("user_id", userId);
 
   const uniqueTones = [...new Set(allFilters?.map((f) => f.tone) || [])].sort();
@@ -141,6 +142,9 @@ export default async function DashboardPage({
             </div>
           )}
         </div>
+
+        {/* Stats */}
+        <StatsSection items={allFilters || []} />
 
         {/* Reply history */}
         <div className="flex flex-col gap-4">
