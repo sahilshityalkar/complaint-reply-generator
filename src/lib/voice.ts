@@ -321,8 +321,13 @@ export function buildGeneratePrompt(params: {
   replyLength?: "short" | "medium" | "long";
   language?: string;
   profile?: BrandProfile;
+  dataFunctions?: Array<{
+    name: string;
+    description: string;
+    parameters: Array<{ name: string; type: string; description: string }>;
+  }>;
 }): string {
-  const { complaint, tone, bizType, replyLength = "medium", language, profile } = params;
+  const { complaint, tone, bizType, replyLength = "medium", language, profile, dataFunctions } = params;
 
   let voiceBlock = `You are a professional customer service expert helping a ${bizType} owner respond to a difficult customer complaint with empathy and professionalism.`;
 
@@ -389,6 +394,33 @@ Write as if you ARE ${profile.business_name}. Match the brand's voice exactly.`;
   };
 
   return `${voiceBlock}
+
+${
+  dataFunctions && dataFunctions.length > 0
+    ? `AVAILABLE DATA FUNCTIONS:
+You have access to live data from the business database. Use these to get REAL information instead of guessing.
+
+${dataFunctions
+  .map(
+    (fn) =>
+      `- ${fn.name}(${fn.parameters.map((p) => p.name).join(", ")}): ${fn.description}`
+  )
+  .join("\n")}
+
+HOW TO USE DATA FUNCTIONS:
+1. If the customer asks about an order, shipment, refund, or product, call the relevant function.
+2. First, output ONLY the function call inside <function_call> tags:
+   <function_call>function_name(param="value")</function_call>
+3. STOP after the function call. Do NOT generate the reply yet.
+4. The system will execute the function and give you the real data.
+5. Then you will generate the reply using the actual data.
+
+IMPORTANT: Do NOT make up order numbers or tracking IDs. Use only data from functions.
+
+`
+
+    : ""
+}
 
 The customer wrote:
 """
