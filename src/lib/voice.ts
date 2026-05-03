@@ -269,6 +269,48 @@ Return ONLY the voice description. Example: "Warm and personal tone. Uses 'we' a
 }
 
 // ============================================================
+// LANGUAGE DETECTION CONFIG
+// ============================================================
+
+export const LANGUAGE_CONFIG: Record<string, { display: string; instruction: string }> = {
+  auto: {
+    display: "Auto",
+    instruction:
+      "Detect the complaint's language automatically. If it's Hinglish (Hindi mixed with English words, written in Latin/Roman script like 'bhaiya order kab aayega'), reply in Hinglish. If it's pure Hindi in Devanagari script (जैसे यह वाक्य), reply in Hindi. If it's English, reply in English. If it's another Indian language (Tamil, Marathi, Bengali, etc.), reply in that language. Match the exact script and language of the complaint.",
+  },
+  hinglish: {
+    display: "Hinglish",
+    instruction:
+      "Reply in Hinglish — a mix of Hindi and English words written in Latin/Roman script. Use conversational, natural Hinglish. Do NOT use Devanagari script. Do NOT reply in pure English or pure Hindi.",
+  },
+  hindi: {
+    display: "Hindi",
+    instruction:
+      "Reply in pure Hindi using Devanagari script (हिन्दी). Use formal, respectful Hindi. Do NOT use English words unless they are proper nouns. Do NOT use Latin/Roman script.",
+  },
+  english: {
+    display: "English",
+    instruction:
+      "Reply in English. Professional business English.",
+  },
+  tamil: {
+    display: "Tamil",
+    instruction:
+      "Reply in Tamil (தமிழ்) using Tamil script. Use respectful, formal Tamil suitable for business communication.",
+  },
+  marathi: {
+    display: "Marathi",
+    instruction:
+      "Reply in Marathi (मराठी) using Devanagari script. Use respectful, professional Marathi.",
+  },
+  bengali: {
+    display: "Bengali",
+    instruction:
+      "Reply in Bengali (বাংলা) using Bengali script. Use respectful, professional Bengali suitable for business communication.",
+  },
+};
+
+// ============================================================
 // PROMPT BUILDER
 // ============================================================
 
@@ -277,9 +319,10 @@ export function buildGeneratePrompt(params: {
   tone: string;
   bizType: string;
   replyLength?: "short" | "medium" | "long";
+  language?: string;
   profile?: BrandProfile;
 }): string {
-  const { complaint, tone, bizType, replyLength = "medium", profile } = params;
+  const { complaint, tone, bizType, replyLength = "medium", language, profile } = params;
 
   let voiceBlock = `You are a professional customer service expert helping a ${bizType} owner respond to a difficult customer complaint with empathy and professionalism.`;
 
@@ -353,6 +396,19 @@ ${complaint}
 """
 
 Generate exactly 3 different professional reply variations. The user's preferred primary tone is: ${tone}.
+
+${
+  (() => {
+    const lang = LANGUAGE_CONFIG[language || "auto"] || {
+      display: language,
+      instruction: `Reply in ${language}. Match the tone and formality appropriate for that language.`,
+    };
+    return `LANGUAGE INSTRUCTIONS (CRITICAL):
+${lang.instruction}
+- Use the correct script (Devanagari/Latin/Tamil/Bengali/etc.) for the reply language.
+- Match the formality level appropriate for the language (formal Hindi ≠ casual Hinglish).`;
+  })()
+}
 
 Return ONLY valid JSON in this exact format, no extra text, no markdown:
 ${jsonFormat}

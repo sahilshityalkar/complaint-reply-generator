@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { complaint, tone, bizType, profile_id, replyLength } = await req.json();
+  const { complaint, tone, bizType, profile_id, replyLength, language } = await req.json();
 
   if (!complaint || complaint.trim().length < 20) {
     return NextResponse.json(
@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     tone,
     bizType,
     replyLength: length,
+    language: language === "auto" ? undefined : language,
     profile: profile || undefined,
   });
 

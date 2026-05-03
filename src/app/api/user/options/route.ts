@@ -6,6 +6,8 @@ import {
   removeCustomTone,
   addCustomBizType,
   removeCustomBizType,
+  addCustomLanguage,
+  removeCustomLanguage,
 } from "@/lib/user-options";
 
 export async function GET() {
@@ -49,6 +51,14 @@ export async function POST(req: Request) {
         result = await addCustomBizType(userId, value);
       } else if (action === "remove") {
         result = await removeCustomBizType(userId, value);
+      } else {
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      }
+    } else if (type === "language") {
+      if (action === "add") {
+        result = await addCustomLanguage(userId, value);
+      } else if (action === "remove") {
+        result = await removeCustomLanguage(userId, value);
       } else {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
       }

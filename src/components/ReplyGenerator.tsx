@@ -25,6 +25,16 @@ const REPLY_LENGTHS = [
   { value: "long", label: "Long", desc: "6-10 sentences" },
 ] as const;
 
+const BUILTIN_LANGUAGES = [
+  { value: "auto", label: "Auto" },
+  { value: "hinglish", label: "Hinglish" },
+  { value: "hindi", label: "Hindi" },
+  { value: "english", label: "English" },
+  { value: "tamil", label: "Tamil" },
+  { value: "marathi", label: "Marathi" },
+  { value: "bengali", label: "Bengali" },
+] as const;
+
 interface Reply {
   label: string;
   tone: string;
@@ -57,6 +67,12 @@ export default function ReplyGenerator() {
   const [addingTone, setAddingTone] = useState(false);
   const [addingBizType, setAddingBizType] = useState(false);
 
+  // Language state
+  const [language, setLanguage] = useState("auto");
+  const [customLanguages, setCustomLanguages] = useState<string[]>([]);
+  const [newLanguageInput, setNewLanguageInput] = useState("");
+  const [addingLanguage, setAddingLanguage] = useState(false);
+
   // Fetch profiles and custom options on mount
   useEffect(() => {
     fetch("/api/voice/profiles")
@@ -75,6 +91,7 @@ export default function ReplyGenerator() {
       .then((data) => {
         setCustomTones(data.custom_tones || []);
         setCustomBizTypes(data.custom_biz_types || []);
+        setCustomLanguages(data.custom_languages || []);
       })
       .catch(() => {});
   }, []);
@@ -99,6 +116,7 @@ export default function ReplyGenerator() {
           tone,
           bizType,
           replyLength,
+          language: language === "auto" ? undefined : language,
           profile_id: selectedProfileId || undefined,
         }),
       });
@@ -267,6 +285,53 @@ export default function ReplyGenerator() {
       }
     } catch {
       toast.error("Failed to remove business type.");
+    }
+  }
+
+  // Language handlers
+  async function handleAddLanguage() {
+    const name = newLanguageInput.trim();
+    if (!name) return;
+    if (customLanguages.includes(name)) {
+      toast.error("This language already exists.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "language", action: "add", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomLanguages(data.items);
+        setNewLanguageInput("");
+        setAddingLanguage(false);
+        toast.success(`Added custom language: "${name}"`);
+      } else {
+        toast.error(data.error || "Failed to add language.");
+      }
+    } catch {
+      toast.error("Failed to save custom language.");
+    }
+  }
+
+  async function handleRemoveLanguage(name: string) {
+    try {
+      const res = await fetch("/api/user/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "language", action: "remove", value: name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomLanguages(data.items);
+        if (language === name) setLanguage("auto");
+        toast(`Removed language: "${name}"`);
+      }
+    } catch {
+      toast.error("Failed to remove language.");
     }
   }
 
@@ -469,6 +534,95 @@ export default function ReplyGenerator() {
               className="self-start text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               + Add custom tone
+            </button>
+          )}
+        </div>
+
+        {/* Language selector */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Reply language
+            {language === "auto" && (
+              <span className="ml-2 text-xs text-gray-400 font-normal">
+                ✨ Auto: matches the complaint&apos;s language
+              </span>
+            )}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {BUILTIN_LANGUAGES.map((lang) => (
+              <button
+                key={lang.value}
+                onClick={() => setLanguage(lang.value)}
+                className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                  language === lang.value
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+          {/* Custom languages */}
+          {customLanguages.length > 0 && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              <div className="flex flex-wrap gap-2">
+                {customLanguages.map((lang) => (
+                  <div key={lang} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setLanguage(lang)}
+                      className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                        language === lang
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveLanguage(lang)}
+                      className="text-gray-400 hover:text-red-500 transition-colors text-xs px-1"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {/* Add custom language */}
+          {addingLanguage ? (
+            <div className="flex gap-2 items-center mt-1">
+              <input
+                type="text"
+                value={newLanguageInput}
+                onChange={(e) => setNewLanguageInput(e.target.value)}
+                placeholder="e.g. Punjabi"
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                onKeyDown={(e) => e.key === "Enter" && handleAddLanguage()}
+                autoFocus
+              />
+              <button
+                onClick={handleAddLanguage}
+                className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-medium"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setAddingLanguage(false); setNewLanguageInput(""); }}
+                className="px-3 py-1.5 rounded-lg text-gray-500 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingLanguage(true)}
+              className="self-start text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              + Add custom language
             </button>
           )}
         </div>

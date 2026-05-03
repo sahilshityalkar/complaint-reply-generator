@@ -5,6 +5,7 @@ const BUCKET = "user-options";
 interface UserOptions {
   custom_tones: string[];
   custom_biz_types: string[];
+  custom_languages: string[];
 }
 
 function getKey(userId: string): string {
@@ -18,14 +19,14 @@ export async function getUserOptions(userId: string): Promise<UserOptions> {
 
   if (error || !data) {
     // File doesn't exist yet — return defaults
-    return { custom_tones: [], custom_biz_types: [] };
+    return { custom_tones: [], custom_biz_types: [], custom_languages: [] };
   }
 
   try {
     const text = await data.text();
     return JSON.parse(text) as UserOptions;
   } catch {
-    return { custom_tones: [], custom_biz_types: [] };
+    return { custom_tones: [], custom_biz_types: [], custom_languages: [] };
   }
 }
 
@@ -83,4 +84,26 @@ export async function removeCustomBizType(
   options.custom_biz_types = options.custom_biz_types.filter((t) => t !== bizType);
   await saveUserOptions(userId, options);
   return options.custom_biz_types;
+}
+
+export async function addCustomLanguage(
+  userId: string,
+  language: string
+): Promise<string[]> {
+  const options = await getUserOptions(userId);
+  if (!options.custom_languages.includes(language)) {
+    options.custom_languages.push(language);
+    await saveUserOptions(userId, options);
+  }
+  return options.custom_languages;
+}
+
+export async function removeCustomLanguage(
+  userId: string,
+  language: string
+): Promise<string[]> {
+  const options = await getUserOptions(userId);
+  options.custom_languages = options.custom_languages.filter((l) => l !== language);
+  await saveUserOptions(userId, options);
+  return options.custom_languages;
 }
